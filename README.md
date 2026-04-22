@@ -98,4 +98,4 @@ Contributions are welcome! If you are interested in signal processing, mobile de
 
 ## License
 
-This project is licensed under the MIT License - see the [[License: MIT](https://github.com/asiimwe-dev/AudioGuard/edit/main/LICENSE)] file for details.
+This project is licensed under the MIT License - see the [[License: MIT](https://github.com/asiimwe-dev/AudioGuard/main/LICENSE)] file for details.
