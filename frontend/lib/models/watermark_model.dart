@@ -201,12 +201,14 @@ class ProcessingError implements Exception {
   final String code;
   final dynamic originalError;
   final StackTrace? stackTrace;
+  final String? details;
 
   ProcessingError({
     required this.message,
     required this.code,
     this.originalError,
     this.stackTrace,
+    this.details,
   });
 
   @override

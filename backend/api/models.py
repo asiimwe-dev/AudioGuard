@@ -92,6 +92,26 @@ class VerifyResponse(BaseModel):
     )
 
 
+class AnalyzeRequest(BaseModel):
+    """Request body for audio analysis endpoint."""
+
+    file_id: Optional[str] = Field(None, description="File ID from encoding response")
+
+
+class AnalyzeResponse(BaseModel):
+    """Response body for analysis endpoint."""
+
+    success: bool
+    watermark_present: bool = Field(..., description="Whether watermark is detected")
+    signal_strength: float = Field(..., ge=0.0, le=1.0, description="Watermark signal strength")
+    spectral_info: dict = Field(
+        default_factory=dict, description="Spectral analysis information"
+    )
+    processing_time_ms: float = Field(
+        ..., description="Time taken to analyze in milliseconds"
+    )
+
+
 class HealthResponse(BaseModel):
     """Response body for health check endpoint."""
 

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
+import 'appearance_settings_screen.dart';
+import 'about_screen.dart';
 
 /// Settings screen - configure app preferences and API settings
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -307,9 +309,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Appearance Settings Section
+            _buildSectionTitle(context, 'Customization'),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.palette),
+                title: const Text('Appearance'),
+                subtitle: const Text('Font, size, theme, contrast'),
+                trailing: const Icon(Icons.arrow_forward),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const AppearanceSettingsScreen(),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // About Section
             _buildSectionTitle(context, 'About'),
             const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.info),
+                title: const Text('About AudioGuard'),
+                subtitle: const Text('App info & resources'),
+                trailing: const Icon(Icons.arrow_forward),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const AboutScreen(),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),

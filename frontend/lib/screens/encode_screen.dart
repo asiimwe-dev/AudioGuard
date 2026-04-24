@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
+import '../models/watermark_model.dart';
 
 /// Encoding screen - add watermark to audio
 class EncodeScreen extends ConsumerStatefulWidget {
@@ -294,7 +295,9 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        error.toString(),
+                        error is ProcessingError && error.details != null
+                            ? error.details!
+                            : error.toString(),
                         style:
                             Theme.of(context).textTheme.bodySmall,
                       ),

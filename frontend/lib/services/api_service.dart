@@ -6,80 +6,89 @@ import '../utils/logger.dart';
 /// API Response Models
 
 class EncodeResponse {
-  final String status;
-  final String? encodedFile; // Base64 or file URL
-  final double confidence;
+  final bool success;
+  final String fileId;
+  final double embeddingStrength;
   final int processingTimeMs;
+  final String? message;
 
   EncodeResponse({
-    required this.status,
-    this.encodedFile,
-    required this.confidence,
+    required this.success,
+    required this.fileId,
+    required this.embeddingStrength,
     required this.processingTimeMs,
+    this.message,
   });
 
   factory EncodeResponse.fromJson(Map<String, dynamic> json) => EncodeResponse(
-        status: json['status'] as String,
-        encodedFile: json['encoded_file'] as String?,
-        confidence: (json['confidence'] as num).toDouble(),
-        processingTimeMs: json['processing_time_ms'] as int,
+        success: json['success'] as bool,
+        fileId: json['file_id'] as String,
+        embeddingStrength: (json['embedding_strength'] as num).toDouble(),
+        processingTimeMs: (json['processing_time_ms'] as num).toInt(),
+        message: json['message'] as String?,
       );
 }
 
 class DecodeResponse {
-  final String status;
+  final bool success;
   final String? message;
   final double confidence;
   final int processingTimeMs;
-  final List<String> suggestions;
+  final String? method;
+  final double? snrDb;
+  final String? error;
 
   DecodeResponse({
-    required this.status,
+    required this.success,
     this.message,
     required this.confidence,
     required this.processingTimeMs,
-    List<String>? suggestions,
-  }) : suggestions = suggestions ?? [];
+    this.method,
+    this.snrDb,
+    this.error,
+  });
 
   factory DecodeResponse.fromJson(Map<String, dynamic> json) => DecodeResponse(
-        status: json['status'] as String,
+        success: json['success'] as bool,
         message: json['message'] as String?,
         confidence: (json['confidence'] as num).toDouble(),
-        processingTimeMs: json['processing_time_ms'] as int,
-        suggestions: List<String>.from(json['suggestions'] as List? ?? []),
+        processingTimeMs: (json['processing_time_ms'] as num).toInt(),
+        method: json['method'] as String?,
+        snrDb: json['snr_db'] != null ? (json['snr_db'] as num).toDouble() : null,
+        error: json['error'] as String?,
       );
 }
 
 class VerifyResponse {
-  final String status;
-  final bool isValid;
+  final bool success;
+  final bool watermarkDetected;
   final double confidence;
   final int processingTimeMs;
 
   VerifyResponse({
-    required this.status,
-    required this.isValid,
+    required this.success,
+    required this.watermarkDetected,
     required this.confidence,
     required this.processingTimeMs,
   });
 
   factory VerifyResponse.fromJson(Map<String, dynamic> json) => VerifyResponse(
-        status: json['status'] as String,
-        isValid: json['is_valid'] as bool,
+        success: json['success'] as bool,
+        watermarkDetected: json['watermark_detected'] as bool,
         confidence: (json['confidence'] as num).toDouble(),
-        processingTimeMs: json['processing_time_ms'] as int,
+        processingTimeMs: (json['processing_time_ms'] as num).toInt(),
       );
 }
 
 class AnalyzeResponse {
-  final String status;
+  final bool success;
   final bool watermarkPresent;
   final double signalStrength;
   final Map<String, dynamic> spectralInfo;
   final int processingTimeMs;
 
   AnalyzeResponse({
-    required this.status,
+    required this.success,
     required this.watermarkPresent,
     required this.signalStrength,
     required this.spectralInfo,
@@ -88,11 +97,11 @@ class AnalyzeResponse {
 
   factory AnalyzeResponse.fromJson(Map<String, dynamic> json) =>
       AnalyzeResponse(
-        status: json['status'] as String,
+        success: json['success'] as bool,
         watermarkPresent: json['watermark_present'] as bool,
         signalStrength: (json['signal_strength'] as num).toDouble(),
-        spectralInfo: json['spectral_info'] as Map<String, dynamic>,
-        processingTimeMs: json['processing_time_ms'] as int,
+        spectralInfo: json['spectral_info'] as Map<String, dynamic>? ?? {},
+        processingTimeMs: (json['processing_time_ms'] as num).toInt(),
       );
 }
 
@@ -149,7 +158,7 @@ class AudioGuardApiClient {
       final formData = FormData.fromMap({
         'audio_file': await MultipartFile.fromFile(audioFilePath),
         'message': message,
-        'message_length': ?messageLength,
+        if (messageLength != null) 'message_length': messageLength,
       });
 
       final response = await dio.post(
@@ -175,7 +184,7 @@ class AudioGuardApiClient {
     try {
       final formData = FormData.fromMap({
         'audio_file': await MultipartFile.fromFile(audioFilePath),
-        'message_length': ?messageLength,
+        if (messageLength != null) 'message_length': messageLength,
       });
 
       final response = await dio.post(
@@ -349,7 +358,7 @@ class ApiService {
         encodedFilePath: audioFilePath,
         processingTime: duration,
         mode: 'cloud',
-        confidence: response.confidence,
+        confidence: response.embeddingStrength,
         originalFileSize: 0,
         encodedFileSize: 0,
       );
@@ -379,8 +388,8 @@ class ApiService {
         confidence: response.confidence,
         mode: 'cloud',
         processingTime: duration,
-        suggestions: response.suggestions,
-        success: response.status == 'ok',
+        suggestions: [],
+        success: response.success,
       );
     } catch (e) {
       AppLogger.error('Decoding failed', e);
@@ -404,7 +413,7 @@ class ApiService {
       final duration = DateTime.now().difference(startTime);
 
       return VerifyResult(
-        isValid: response.isValid,
+        isValid: response.watermarkDetected,
         confidence: response.confidence,
         mode: 'cloud',
         processingTime: duration,

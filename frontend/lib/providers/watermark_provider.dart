@@ -169,14 +169,27 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
           if (mode == WatermarkMode.hybrid) {
             // Fallback to local
             state = state.copyWith(progress: 0.5);
-            throw UnimplementedError('Local encoding fallback not fully implemented');
+            throw ProcessingError(
+              message: 'Cloud processing failed. Local fallback not yet available.',
+              code: 'LOCAL_FALLBACK_UNAVAILABLE',
+              originalError: e,
+              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
+            );
           } else {
             rethrow;
           }
         }
       } else {
         // Local mode
-        throw UnimplementedError('Local encoding not fully implemented');
+        throw ProcessingError(
+          message: 'Local processing not yet available',
+          code: 'LOCAL_PROCESSING_UNAVAILABLE',
+          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
+              'For Cloud mode to work, ensure your device:\n'
+              '1. Has internet connectivity\n'
+              '2. Can reach the AudioGuard backend server\n'
+              '3. Is on the same network as the backend if using local IP',
+        );
       }
 
       state = state.copyWith(
@@ -271,13 +284,26 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
         } catch (e) {
           if (mode == WatermarkMode.hybrid) {
             state = state.copyWith(progress: 0.5);
-            throw UnimplementedError('Local decoding fallback not fully implemented');
+            throw ProcessingError(
+              message: 'Cloud processing failed. Local fallback not yet available.',
+              code: 'LOCAL_FALLBACK_UNAVAILABLE',
+              originalError: e,
+              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
+            );
           } else {
             rethrow;
           }
         }
       } else {
-        throw UnimplementedError('Local decoding not fully implemented');
+        throw ProcessingError(
+          message: 'Local processing not yet available',
+          code: 'LOCAL_PROCESSING_UNAVAILABLE',
+          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
+              'For Cloud mode to work, ensure your device:\n'
+              '1. Has internet connectivity\n'
+              '2. Can reach the AudioGuard backend server\n'
+              '3. Is on the same network as the backend if using local IP',
+        );
       }
 
       state = state.copyWith(
@@ -372,13 +398,26 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
         } catch (e) {
           if (mode == WatermarkMode.hybrid) {
             state = state.copyWith(progress: 0.5);
-            throw UnimplementedError('Local verification fallback not fully implemented');
+            throw ProcessingError(
+              message: 'Cloud processing failed. Local fallback not yet available.',
+              code: 'LOCAL_FALLBACK_UNAVAILABLE',
+              originalError: e,
+              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
+            );
           } else {
             rethrow;
           }
         }
       } else {
-        throw UnimplementedError('Local verification not fully implemented');
+        throw ProcessingError(
+          message: 'Local processing not yet available',
+          code: 'LOCAL_PROCESSING_UNAVAILABLE',
+          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
+              'For Cloud mode to work, ensure your device:\n'
+              '1. Has internet connectivity\n'
+              '2. Can reach the AudioGuard backend server\n'
+              '3. Is on the same network as the backend if using local IP',
+        );
       }
 
       state = state.copyWith(
@@ -469,13 +508,26 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
         } catch (e) {
           if (mode == WatermarkMode.hybrid) {
             state = state.copyWith(progress: 0.5);
-            throw UnimplementedError('Local analysis fallback not fully implemented');
+            throw ProcessingError(
+              message: 'Cloud processing failed. Local fallback not yet available.',
+              code: 'LOCAL_FALLBACK_UNAVAILABLE',
+              originalError: e,
+              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
+            );
           } else {
             rethrow;
           }
         }
       } else {
-        throw UnimplementedError('Local analysis not fully implemented');
+        throw ProcessingError(
+          message: 'Local processing not yet available',
+          code: 'LOCAL_PROCESSING_UNAVAILABLE',
+          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
+              'For Cloud mode to work, ensure your device:\n'
+              '1. Has internet connectivity\n'
+              '2. Can reach the AudioGuard backend server\n'
+              '3. Is on the same network as the backend if using local IP',
+        );
       }
 
       state = state.copyWith(

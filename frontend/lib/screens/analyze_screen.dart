@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
+import '../providers/ui_provider.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
 
@@ -25,6 +26,12 @@ class AnalyzeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Analyze Watermark'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            ref.read(currentScreenProvider.notifier).state = CurrentScreen.home;
+          },
+        ),
         elevation: 0,
       ),
       body: audioPath == null
@@ -157,7 +164,9 @@ class AnalyzeScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(error.toString()),
+                            Text(error is ProcessingError && error.details != null
+                                ? error.details!
+                                : error.toString()),
                           ],
                         ),
                       ),

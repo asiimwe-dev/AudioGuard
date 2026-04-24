@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Material Design 3 themed colors for AudioGuard
 class AppColors {
@@ -65,83 +64,96 @@ class AppTheme {
         surface: AppColors.surface,
         onSurface: AppColors.onSurface,
       ),
-      textTheme: GoogleFonts.interTextTheme(
-        const TextTheme(
-          displayLarge: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-          displayMedium: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-          displaySmall: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-          headlineLarge: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-          headlineMedium: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0,
-          ),
-          headlineSmall: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0,
-          ),
-          titleLarge: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.15,
-          ),
-          titleMedium: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.1,
-          ),
-          titleSmall: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.1,
-          ),
-          bodyLarge: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0.5,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0.25,
-          ),
-          bodySmall: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 0.4,
-          ),
-          labelLarge: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.1,
-          ),
-          labelMedium: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-          labelSmall: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        displayMedium: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        displaySmall: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
+          fontFamily: 'Roboto',
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+          fontFamily: 'Roboto',
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+          fontFamily: 'Roboto',
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.5,
+          fontFamily: 'Roboto',
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.25,
+          fontFamily: 'Roboto',
+        ),
+        bodySmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.4,
+          fontFamily: 'Roboto',
+        ),
+        labelLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          fontFamily: 'Roboto',
+        ),
+        labelMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          fontFamily: 'Roboto',
+        ),
+        labelSmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          fontFamily: 'Roboto',
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -201,15 +213,16 @@ class AppTheme {
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.onSurface,
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: 20,
+        titleTextStyle: TextStyle(
+          fontSize: 24,
           fontWeight: FontWeight.w600,
           color: AppColors.onSurface,
+          fontFamily: 'Roboto',
         ),
       ),
     );
@@ -238,6 +251,167 @@ class AppTheme {
         onErrorContainer: AppColors.errorContainer,
         surface: Color(0xFF1C1B1F),
         onSurface: Color(0xFFE7E0EB),
+      ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        displayMedium: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        displaySmall: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0,
+          fontFamily: 'Roboto',
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
+          fontFamily: 'Roboto',
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+          fontFamily: 'Roboto',
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+          fontFamily: 'Roboto',
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.5,
+          fontFamily: 'Roboto',
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.25,
+          fontFamily: 'Roboto',
+        ),
+        bodySmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.4,
+          fontFamily: 'Roboto',
+        ),
+        labelLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          fontFamily: 'Roboto',
+        ),
+        labelMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          fontFamily: 'Roboto',
+        ),
+        labelSmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          fontFamily: 'Roboto',
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
+          ),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          elevation: 2,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
+          ),
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.primary, width: 1),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          foregroundColor: AppColors.primary,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF2C2C30),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.divider),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.divider),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        labelStyle: const TextStyle(color: Color(0xFFE7E0EB)),
+        hintStyle: TextStyle(
+          color: const Color(0xFFE7E0EB).withValues(alpha: 0.6),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF2C2C30),
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      appBarTheme: const AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: Color(0xFF1C1B1F),
+        foregroundColor: Color(0xFFE7E0EB),
+        titleTextStyle: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFE7E0EB),
+          fontFamily: 'Roboto',
+        ),
       ),
     );
   }

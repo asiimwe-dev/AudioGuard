@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
+import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
+import '../models/watermark_model.dart';
 
 /// Decoding screen - extract watermark from audio
 class DecodeScreen extends ConsumerStatefulWidget {
@@ -43,6 +45,12 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Decode Watermark'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            ref.read(currentScreenProvider.notifier).state = CurrentScreen.home;
+          },
+        ),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -303,7 +311,9 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        error.toString(),
+                        error is ProcessingError && error.details != null
+                            ? error.details!
+                            : error.toString(),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

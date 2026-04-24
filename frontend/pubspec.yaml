@@ -57,6 +57,9 @@ dependencies:
   
   # Permissions
   permission_handler: ^11.3.0
+
+  # URL Launcher
+  url_launcher: ^6.2.0
   
   # ML/TensorFlow Lite
   tflite_flutter: ^0.11.0
