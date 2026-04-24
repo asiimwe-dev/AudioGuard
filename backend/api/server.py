@@ -64,6 +64,10 @@ app_state = {
     "request_count": 0,
 }
 
+# Create persistent storage for encoded files
+STORAGE_DIR = Path(tempfile.gettempdir()) / "audioguard_storage"
+STORAGE_DIR.mkdir(exist_ok=True)
+
 
 def create_app(debug: bool = False) -> FastAPI:
     """
@@ -125,7 +129,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
     @app.post("/api/v1/encode", response_model=EncodeResponse)
     async def encode_watermark(
-        file: UploadFile = File(...),
+        audio_file: UploadFile = File(...),
         message: str = Form(...),
         amplitude_factor: float = Form(0.05),
         frame_size: int = Form(2048),
@@ -162,7 +166,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
             # Save uploaded file
             input_path = Path(temp_dir) / "input_audio"
-            content = await file.read()
+            content = await audio_file.read()
 
             # Handle different formats
             try:
@@ -192,13 +196,16 @@ def create_app(debug: bool = False) -> FastAPI:
                 bits_per_frame=bits_per_frame,
             )
 
-            # Store encoded file
+            # Store encoded file in persistent location
             file_id = f"file_{int(time.time())}_{np.random.randint(10000)}"
-            app_state["encoded_files"][file_id] = str(output_wav)
+            persistent_path = STORAGE_DIR / f"{file_id}.wav"
+            import shutil
+            shutil.copy2(str(output_wav), str(persistent_path))
+            app_state["encoded_files"][file_id] = str(persistent_path)
 
             processing_time = (time.time() - start_time) * 1000
 
-            # Schedule cleanup
+            # Schedule cleanup of temp directory only
             if background_tasks:
                 background_tasks.add_task(cleanup_temp_file, temp_dir)
 
@@ -220,7 +227,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
     @app.post("/api/v1/decode", response_model=DecodeResponse)
     async def decode_watermark(
-        file: UploadFile = File(...),
+        audio_file: UploadFile = File(...),
         message_length: int = Form(None),
         use_cnn: bool = Form(False),
         confidence_threshold: float = Form(0.5),
@@ -229,7 +236,7 @@ def create_app(debug: bool = False) -> FastAPI:
         Extract watermark from audio file.
 
         **Parameters:**
-        - **file**: Audio file to decode
+        - **audio_file**: Audio file to decode
         - **message_length**: Expected message length (optional, default tries 4-32)
         - **use_cnn**: Use CNN decoder for compressed audio (optional)
         - **confidence_threshold**: Minimum confidence to accept result (0-1)
@@ -245,7 +252,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
         try:
             # Read and save audio file
-            content = await file.read()
+            content = await audio_file.read()
             try:
                 audio_data, sr = sf.read(io.BytesIO(content))
             except Exception:
@@ -355,12 +362,16 @@ def create_app(debug: bool = False) -> FastAPI:
             )
 
     @app.post("/api/v1/verify", response_model=VerifyResponse)
-    async def verify_watermark(file: UploadFile = File(...)):
+    async def verify_watermark(
+        audio_file: UploadFile = File(...),
+        message: str = Form(None),
+    ):
         """
         Check if audio contains watermark (binary classification).
 
         **Parameters:**
-        - **file**: Audio file to verify
+        - **audio_file**: Audio file to verify
+        - **message**: Optional message to verify against specific watermark
 
         **Returns:**
         - **watermark_detected**: True if watermark is present
@@ -371,7 +382,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
         try:
             # Read and save audio file
-            content = await file.read()
+            content = await audio_file.read()
             try:
                 audio_data, sr = sf.read(io.BytesIO(content))
             except Exception:
@@ -455,12 +466,12 @@ def create_app(debug: bool = False) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
 
     @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
-    async def analyze_audio(file: UploadFile = File(...)):
+    async def analyze_audio(audio_file: UploadFile = File(...)):
         """
         Analyze audio for watermark presence and signal strength.
 
         **Parameters:**
-        - **file**: Audio file to analyze
+        - **audio_file**: Audio file to analyze
 
         **Returns:**
         - **watermark_present**: Whether watermark is detected
@@ -472,7 +483,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
         try:
             # Save and read audio file
-            content = await file.read()
+            content = await audio_file.read()
             try:
                 audio_data, sr = sf.read(io.BytesIO(content))
             except Exception:

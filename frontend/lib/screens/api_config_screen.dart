@@ -1,0 +1,329 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/watermark_provider.dart';
+import '../providers/ui_provider.dart';
+import '../utils/constants.dart';
+import '../services/api_service.dart';
+
+/// API Configuration screen - dedicated tab for backend configuration
+class ApiConfigScreen extends ConsumerStatefulWidget {
+  const ApiConfigScreen({super.key});
+
+  @override
+  ConsumerState<ApiConfigScreen> createState() => _ApiConfigScreenState();
+}
+
+class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
+  late final TextEditingController _apiUrlController;
+  late final TextEditingController _authTokenController;
+  bool _isTestingConnection = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiUrlController = TextEditingController();
+    _authTokenController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _apiUrlController.dispose();
+    _authTokenController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _testConnection() async {
+    setState(() => _isTestingConnection = true);
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final isHealthy = await apiService.checkHealth();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isHealthy
+              ? 'Connection successful! Backend is responding.'
+              : 'Connection failed. Please check the URL and your network.'),
+          backgroundColor: isHealthy ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error testing connection: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isTestingConnection = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+
+    // Initialize controllers with settings values if empty
+    if (_apiUrlController.text.isEmpty) {
+      _apiUrlController.text = settings.apiBaseUrl;
+    }
+    if (_authTokenController.text.isEmpty && settings.authToken != null) {
+      _authTokenController.text = settings.authToken ?? '';
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('API Configuration'),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // API URL Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Backend URL',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Configure your backend server address for watermarking operations.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _apiUrlController,
+                      decoration: InputDecoration(
+                        hintText: AppConstants.defaultApiBaseUrl,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: const Icon(Icons.language),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.info_outline),
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Backend URL Format'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Examples:',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text('Local (device on same network):'),
+                                    Text(
+                                      'http://192.168.1.100:8000',
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 12,
+                                        backgroundColor: Colors.grey[200],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text('Emulator (local machine):'),
+                                    Text(
+                                      'http://10.0.2.2:8000',
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 12,
+                                        backgroundColor: Colors.grey[200],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text('Production (cloud):'),
+                                    Text(
+                                      'https://api.audioguard.example.com',
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 12,
+                                        backgroundColor: Colors.grey[200],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      onChanged: (value) {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .setApiBaseUrl(value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Authentication Token Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Authentication Token (Optional)',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'JWT token for authenticated API requests.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _authTokenController,
+                      decoration: InputDecoration(
+                        hintText: 'Paste JWT token here',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _authTokenController.clear();
+                            ref
+                                .read(settingsProvider.notifier)
+                                .setAuthToken(null);
+                          },
+                        ),
+                      ),
+                      obscureText: true,
+                      onChanged: (value) {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .setAuthToken(value.isEmpty ? null : value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Connection Status
+            Card(
+              color: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.cloud_queue,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Connection Test',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Verify your backend is accessible',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: _isTestingConnection
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_outline),
+                        label: Text(
+                          _isTestingConnection
+                              ? 'Testing...'
+                              : 'Test Connection',
+                        ),
+                        onPressed: _isTestingConnection ? null : _testConnection,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Backend Info
+            Card(
+              color: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Backend Requirements',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '• Python 3.11+ with FastAPI\n'
+                      '• AudioGuard engine installed\n'
+                      '• Access to port 8000\n'
+                      '• Network connectivity from device',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

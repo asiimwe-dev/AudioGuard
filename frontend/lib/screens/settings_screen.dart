@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/ui_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../utils/constants.dart';
-import 'appearance_settings_screen.dart';
-import 'about_screen.dart';
 
-/// Settings screen - configure app preferences and API settings
+/// Settings screen - main settings hub with navigation to other screens
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -15,80 +14,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  late final TextEditingController _apiUrlController;
-  late final TextEditingController _authTokenController;
-  bool _isTestingConnection = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _apiUrlController = TextEditingController();
-    _authTokenController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _apiUrlController.dispose();
-    _authTokenController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _testConnection() async {
-    setState(() => _isTestingConnection = true);
-    
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      final isHealthy = await apiService.checkHealth();
-      
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isHealthy 
-            ? 'Connection successful!' 
-            : 'Connection failed. Please check the URL and your network.'),
-          backgroundColor: isHealthy ? Colors.green : Colors.red,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error testing connection: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isTestingConnection = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final mode = ref.watch(watermarkModeProvider);
 
-    // Initialize controllers with settings values if they are empty
-    if (_apiUrlController.text.isEmpty) {
-      _apiUrlController.text = settings.apiBaseUrl;
-    }
-    if (_authTokenController.text.isEmpty && settings.authToken != null) {
-      _authTokenController.text = settings.authToken ?? '';
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // Save settings before leaving
-            ref.read(settingsProvider.notifier).saveSettings(ref.read(storageServiceProvider));
-            ref.read(currentScreenProvider.notifier).state = CurrentScreen.home;
-          },
-        ),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -96,86 +29,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // API Configuration Section
-            _buildSectionTitle(context, 'API Configuration'),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'API Base URL',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _apiUrlController,
-                      decoration: InputDecoration(
-                        hintText: AppConstants.defaultApiBaseUrl,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: const Icon(Icons.language),
-                      ),
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setApiBaseUrl(value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Authentication Token',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _authTokenController,
-                      decoration: InputDecoration(
-                        hintText: 'JWT token (optional)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _authTokenController.clear();
-                            ref
-                                .read(settingsProvider.notifier)
-                                .setAuthToken(null);
-                          },
-                        ),
-                      ),
-                      obscureText: true,
-                      onChanged: (value) {
-                        ref.read(settingsProvider.notifier).setAuthToken(
-                            value.isEmpty ? null : value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isTestingConnection ? null : _testConnection,
-                        icon: _isTestingConnection 
-                          ? const SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                            )
-                          : const Icon(Icons.check),
-                        label: Text(_isTestingConnection ? 'Testing...' : 'Test Connection'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
             // Processing Mode Section
             _buildSectionTitle(context, 'Processing Mode'),
             const SizedBox(height: 12),
@@ -293,8 +146,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () {
-                        // For a real reset, we'd recreate the AppSettings()
-                        // but here we just show a snackbar
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                               content: Text('All settings reset to default')),
@@ -319,97 +170,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 subtitle: const Text('Font, size, theme, contrast'),
                 trailing: const Icon(Icons.arrow_forward),
                 onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const AppearanceSettingsScreen(),
-                  );
+                  ref.read(currentSettingsScreenProvider.notifier).state =
+                      SettingsSubScreen.appearance;
                 },
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // About Section
-            _buildSectionTitle(context, 'About'),
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.info),
-                title: const Text('About AudioGuard'),
-                subtitle: const Text('App info & resources'),
-                trailing: const Icon(Icons.arrow_forward),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => const AboutScreen(),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'App Version',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        Text(
-                          '1.0.0',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Build Number',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        Text(
-                          '1',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 16),
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            'AudioGuard Mobile',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Audio Watermarking & Attribution',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '© 2024 AudioGuard. All rights reserved.',
-                            style: Theme.of(context).textTheme.labelSmall,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 24),

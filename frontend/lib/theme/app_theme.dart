@@ -249,7 +249,7 @@ class AppTheme {
         onError: AppColors.onError,
         errorContainer: Color(0xFF601410),
         onErrorContainer: AppColors.errorContainer,
-        surface: Color(0xFF1C1B1F),
+        surface: Color(0xFF0A0A0E),
         onSurface: Color(0xFFE7E0EB),
       ),
       textTheme: const TextTheme(

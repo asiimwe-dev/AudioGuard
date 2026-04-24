@@ -1,85 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// About screen - app info, credits, and links
+/// About screen - full screen app info, credits, and links
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('About AudioGuard'),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
+            // App Icon & Title
             Container(
-              color: Theme.of(context).colorScheme.primary,
-              padding: const EdgeInsets.all(16),
-              child: Row(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
                 children: [
-                  const Icon(Icons.info, color: Colors.white),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'About AudioGuard',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      size: 50,
+                      color: Colors.white,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
+                  const SizedBox(height: 24),
+                  Text(
+                    'AudioGuard',
+                    style: Theme.of(context).textTheme.displayMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Audio Watermarking & Verification System',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
-            // Content
+            // Version Info
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // App Icon & Title
-                  Center(
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.shield_outlined,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'AudioGuard',
-                          style: Theme.of(context).textTheme.displaySmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Audio Watermarking & Verification System',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
+                  Text(
+                    'Version Information',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 24),
-
-                  // Version Info
+                  const SizedBox(height: 16),
                   _InfoRow(
                     icon: Icons.tag,
                     label: 'Version',
@@ -93,36 +85,30 @@ class AboutScreen extends StatelessWidget {
                   _InfoRow(
                     icon: Icons.calendar_today,
                     label: 'Release Date',
-                    value: 'April 2024',
+                    value: 'April 2026',
                   ),
                   const SizedBox(height: 24),
-
-                  // Description
                   Text(
                     'About',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'AudioGuard is a high-fidelity digital watermarking system designed for audio authenticity and attribution. It uses advanced signal processing to embed invisible signatures into audio files, enabling creators and journalists to prove content authenticity.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 24),
-
-                  // Features
                   Text(
                     'Features',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   _FeatureItem('STFT-based watermark embedding'),
                   _FeatureItem('Cloud & local processing modes'),
                   _FeatureItem('High watermark robustness'),
                   _FeatureItem('Multi-format audio support'),
                   _FeatureItem('Cross-platform (iOS, Android)'),
                   const SizedBox(height: 24),
-
-                  // Links
                   Text(
                     'Resources',
                     style: Theme.of(context).textTheme.titleMedium,
@@ -144,8 +130,6 @@ class AboutScreen extends StatelessWidget {
                     url: 'https://github.com/asiimwe-dev/AudioGuard/issues',
                   ),
                   const SizedBox(height: 24),
-
-                  // Licenses
                   ExpansionTile(
                     title: Text(
                       'Open Source Licenses',
@@ -169,17 +153,16 @@ class AboutScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Footer
                   Center(
                     child: Text(
-                      '© 2024 AudioGuard. All rights reserved.',
+                      '© 2026 AudioGuard. All rights reserved.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

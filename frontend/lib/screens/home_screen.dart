@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
-import '../providers/ui_provider.dart' show currentScreenProvider, CurrentScreen;
+import '../providers/navigation_provider.dart';
 import '../utils/constants.dart';
 
 /// Home screen - main dashboard
@@ -21,7 +21,7 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              ref.read(currentScreenProvider.notifier).state = CurrentScreen.settings;
+              ref.read(currentTabProvider.notifier).state = NavigationTab.settings;
             },
           ),
         ],
@@ -269,8 +269,8 @@ class _ActionGrid extends ConsumerWidget {
         label: 'Encode',
         description: 'Add watermark',
         color: const Color(0xFF6200EE),
-        onTap: () {
-          ref.read(currentScreenProvider.notifier).state = CurrentScreen.encode;
+        onTap: (ref) {
+          ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.encode;
         },
       ),
       _ActionData(
@@ -278,8 +278,8 @@ class _ActionGrid extends ConsumerWidget {
         label: 'Decode',
         description: 'Extract watermark',
         color: const Color(0xFF03DAC6),
-        onTap: () {
-          ref.read(currentScreenProvider.notifier).state = CurrentScreen.decode;
+        onTap: (ref) {
+          ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.decode;
         },
       ),
       _ActionData(
@@ -287,8 +287,8 @@ class _ActionGrid extends ConsumerWidget {
         label: 'Verify',
         description: 'Check authenticity',
         color: const Color(0xFF4CAF50),
-        onTap: () {
-          ref.read(currentScreenProvider.notifier).state = CurrentScreen.verify;
+        onTap: (ref) {
+          ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.verify;
         },
       ),
       _ActionData(
@@ -296,8 +296,8 @@ class _ActionGrid extends ConsumerWidget {
         label: 'Analyze',
         description: 'Audio analysis',
         color: const Color(0xFFFFC107),
-        onTap: () {
-          ref.read(currentScreenProvider.notifier).state = CurrentScreen.analyze;
+        onTap: (ref) {
+          ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.analyze;
         },
       ),
     ];
@@ -320,7 +320,7 @@ class _ActionData {
   final String label;
   final String description;
   final Color color;
-  final VoidCallback onTap;
+  final Function(WidgetRef) onTap;
 
   _ActionData({
     required this.icon,
@@ -331,7 +331,7 @@ class _ActionData {
   });
 }
 
-class _ActionButton extends StatelessWidget {
+class _ActionButton extends ConsumerWidget {
   final _ActionData action;
 
   const _ActionButton({
@@ -339,12 +339,12 @@ class _ActionButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Material(
       color: action.color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: action.onTap,
+        onTap: () => action.onTap(ref),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

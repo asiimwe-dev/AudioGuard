@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
 import '../models/watermark_model.dart';
@@ -51,7 +52,8 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            ref.read(currentScreenProvider.notifier).state = CurrentScreen.home;
+            ref.read(currentHomeScreenProvider.notifier).state =
+                HomeSubScreen.dashboard;
           },
         ),
         elevation: 0,
@@ -217,6 +219,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
             ],
             encoding.result.when(
               data: (result) => Card(
+                color: Colors.green[50],
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -229,12 +232,13 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                             color: Colors.green,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Encoding Successful',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: Colors.green[900],
                               ),
                             ),
                           ),
@@ -282,12 +286,13 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                             color: Colors.red,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Encoding Failed',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: Colors.red[900],
                               ),
                             ),
                           ),
@@ -298,8 +303,10 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                         error is ProcessingError && error.details != null
                             ? error.details!
                             : error.toString(),
-                        style:
-                            Theme.of(context).textTheme.bodySmall,
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -360,8 +367,9 @@ class _ResultRow extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
+              color: Colors.green[900],
             ),
           ),
         ],

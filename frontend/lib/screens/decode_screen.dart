@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
 import '../models/watermark_model.dart';
@@ -48,7 +49,8 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            ref.read(currentScreenProvider.notifier).state = CurrentScreen.home;
+            ref.read(currentHomeScreenProvider.notifier).state =
+                HomeSubScreen.dashboard;
           },
         ),
         elevation: 0,
@@ -187,6 +189,7 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
             ],
             decoding.result.when(
               data: (result) => Card(
+                color: result.success ? Colors.green[50] : Colors.orange[50],
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -206,9 +209,12 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                               result.success
                                   ? 'Watermark Extracted'
                                   : 'No watermark detected',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: result.success
+                                    ? Colors.green[900]
+                                    : Colors.orange[900],
                               ),
                             ),
                           ),
@@ -298,12 +304,13 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                             color: Colors.red,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Decoding Failed',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: Colors.red[900],
                               ),
                             ),
                           ),
@@ -314,7 +321,10 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                         error is ProcessingError && error.details != null
                             ? error.details!
                             : error.toString(),
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),

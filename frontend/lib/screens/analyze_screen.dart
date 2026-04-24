@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
-import '../providers/ui_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
 
@@ -29,7 +29,8 @@ class AnalyzeScreen extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            ref.read(currentScreenProvider.notifier).state = CurrentScreen.home;
+            ref.read(currentHomeScreenProvider.notifier).state =
+                HomeSubScreen.dashboard;
           },
         ),
         elevation: 0,

@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'screens/home_screen.dart';
-import 'screens/encode_screen.dart';
-import 'screens/decode_screen.dart';
-import 'screens/verify_screen.dart';
-import 'screens/analyze_screen.dart';
-import 'screens/settings_screen.dart';
+import 'widgets/app_shell.dart';
 import 'theme/app_theme.dart';
-import 'providers/ui_provider.dart';
 import 'providers/watermark_provider.dart';
 import 'services/storage_service.dart';
 
@@ -41,26 +35,8 @@ class AudioGuardApp extends ConsumerWidget {
       theme: AppTheme.lightTheme(),
       darkTheme: AppTheme.darkTheme(),
       themeMode: ThemeMode.system,
-      home: const _AppHome(),
+      home: const AppShell(),
       debugShowCheckedModeBanner: false,
     );
-  }
-}
-
-class _AppHome extends ConsumerWidget {
-  const _AppHome();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentScreen = ref.watch(currentScreenProvider);
-
-    return switch (currentScreen) {
-      CurrentScreen.home => const HomeScreen(),
-      CurrentScreen.encode => const EncodeScreen(),
-      CurrentScreen.decode => const DecodeScreen(),
-      CurrentScreen.verify => const VerifyScreen(),
-      CurrentScreen.analyze => const AnalyzeScreen(),
-      CurrentScreen.settings => const SettingsScreen(),
-    };
   }
 }

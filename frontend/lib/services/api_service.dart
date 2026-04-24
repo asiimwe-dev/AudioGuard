@@ -327,12 +327,15 @@ class ApiService {
   /// Check API health
   Future<bool> checkHealth() async {
     try {
+      AppLogger.info('Testing connection to: $_baseUrl/health');
       await _client.getHealth().timeout(
-            const Duration(seconds: 5),
+            const Duration(seconds: 10),
           );
+      AppLogger.info('Health check successful');
       return true;
     } catch (e) {
-      AppLogger.warning('Health check failed: $e');
+      AppLogger.error('Health check failed', e);
+      print('HEALTH CHECK ERROR: $e');
       return false;
     }
   }

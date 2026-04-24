@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/watermark_model.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../services/local_service.dart';
+import '../services/smart_processing_service.dart';
 import '../services/audio_service.dart';
 import '../utils/constants.dart';
 
@@ -26,6 +28,21 @@ final localServiceProvider = Provider((ref) {
 
 final audioServiceProvider = Provider((ref) {
   return AudioService();
+});
+
+final connectivityProvider = Provider((ref) {
+  return Connectivity();
+});
+
+/// Smart processing service - Cloud first with local fallback
+final smartProcessingServiceProvider = Provider((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  final connectivity = ref.watch(connectivityProvider);
+
+  return SmartProcessingService(
+    cloudService: apiService,
+    connectivity: connectivity,
+  );
 });
 
 // ===== Audio State Providers =====
@@ -143,10 +160,10 @@ class EncodingState {
 
 class EncodingNotifier extends StateNotifier<EncodingState> {
   final ApiService _apiService;
-  final LocalService _localService;
+  final SmartProcessingService _smartProcessing;
   final Ref _ref;
 
-  EncodingNotifier(this._apiService, this._localService, this._ref) : super(EncodingState());
+  EncodingNotifier(this._apiService, this._ref, this._smartProcessing) : super(EncodingState());
 
   Future<void> encode({
     required String audioFilePath,
@@ -158,37 +175,24 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
     try {
       EncodingResult result;
 
-      if (mode == WatermarkMode.cloud || (mode == WatermarkMode.hybrid)) {
-        // For cloud/hybrid, try cloud first
-        try {
-          result = await _apiService.encode(
-            audioFilePath: audioFilePath,
-            message: message,
-          );
-        } catch (e) {
-          if (mode == WatermarkMode.hybrid) {
-            // Fallback to local
-            state = state.copyWith(progress: 0.5);
-            throw ProcessingError(
-              message: 'Cloud processing failed. Local fallback not yet available.',
-              code: 'LOCAL_FALLBACK_UNAVAILABLE',
-              originalError: e,
-              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
-            );
-          } else {
-            rethrow;
-          }
-        }
+      if (mode == WatermarkMode.hybrid) {
+        // Hybrid mode: Use smart processing (cloud-first)
+        result = await _smartProcessing.encode(
+          audioFilePath: audioFilePath,
+          message: message,
+        );
+      } else if (mode == WatermarkMode.cloud) {
+        // Cloud only mode
+        result = await _apiService.encode(
+          audioFilePath: audioFilePath,
+          message: message,
+        );
       } else {
-        // Local mode
+        // Local mode: Not implemented for mobile
         throw ProcessingError(
-          message: 'Local processing not yet available',
-          code: 'LOCAL_PROCESSING_UNAVAILABLE',
-          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
-              'For Cloud mode to work, ensure your device:\n'
-              '1. Has internet connectivity\n'
-              '2. Can reach the AudioGuard backend server\n'
-              '3. Is on the same network as the backend if using local IP',
+          message: 'Local processing not available',
+          code: 'LOCAL_NOT_AVAILABLE',
+          details: 'Local processing is currently in development. Please use Cloud or Hybrid mode.',
         );
       }
 
@@ -227,9 +231,9 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
 
 final encodingProvider =
     StateNotifierProvider<EncodingNotifier, EncodingState>((ref) {
+  final smartProcessing = ref.watch(smartProcessingServiceProvider);
   final api = ref.watch(apiServiceProvider);
-  final local = ref.watch(localServiceProvider);
-  return EncodingNotifier(api, local, ref);
+  return EncodingNotifier(api, ref, smartProcessing);
 });
 
 // ===== Decoding State =====
@@ -260,10 +264,10 @@ class DecodingState {
 
 class DecodingNotifier extends StateNotifier<DecodingState> {
   final ApiService _apiService;
-  final LocalService _localService;
+  final SmartProcessingService _smartProcessing;
   final Ref _ref;
 
-  DecodingNotifier(this._apiService, this._localService, this._ref) : super(DecodingState());
+  DecodingNotifier(this._apiService, this._ref, this._smartProcessing) : super(DecodingState());
 
   Future<void> decode({
     required String audioFilePath,
@@ -275,34 +279,24 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
     try {
       DecodingResult result;
 
-      if (mode == WatermarkMode.cloud || mode == WatermarkMode.hybrid) {
-        try {
-          result = await _apiService.decode(
-            audioFilePath: audioFilePath,
-            messageLength: messageLength,
-          );
-        } catch (e) {
-          if (mode == WatermarkMode.hybrid) {
-            state = state.copyWith(progress: 0.5);
-            throw ProcessingError(
-              message: 'Cloud processing failed. Local fallback not yet available.',
-              code: 'LOCAL_FALLBACK_UNAVAILABLE',
-              originalError: e,
-              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
-            );
-          } else {
-            rethrow;
-          }
-        }
+      if (mode == WatermarkMode.hybrid) {
+        // Hybrid mode: Use smart processing (cloud-first)
+        result = await _smartProcessing.decode(
+          audioFilePath: audioFilePath,
+          messageLength: messageLength,
+        );
+      } else if (mode == WatermarkMode.cloud) {
+        // Cloud only mode
+        result = await _apiService.decode(
+          audioFilePath: audioFilePath,
+          messageLength: messageLength,
+        );
       } else {
+        // Local mode: Not implemented for mobile
         throw ProcessingError(
-          message: 'Local processing not yet available',
-          code: 'LOCAL_PROCESSING_UNAVAILABLE',
-          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
-              'For Cloud mode to work, ensure your device:\n'
-              '1. Has internet connectivity\n'
-              '2. Can reach the AudioGuard backend server\n'
-              '3. Is on the same network as the backend if using local IP',
+          message: 'Local processing not available',
+          code: 'LOCAL_NOT_AVAILABLE',
+          details: 'Local processing is currently in development. Please use Cloud or Hybrid mode.',
         );
       }
 
@@ -316,7 +310,7 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
         operationType: 'decode',
         mode: result.mode,
         timestamp: DateTime.now(),
-        success: result.success,
+        success: true,
         confidence: result.confidence,
       ));
     } catch (error, stackTrace) {
@@ -341,9 +335,9 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
 
 final decodingProvider =
     StateNotifierProvider<DecodingNotifier, DecodingState>((ref) {
+  final smartProcessing = ref.watch(smartProcessingServiceProvider);
   final api = ref.watch(apiServiceProvider);
-  final local = ref.watch(localServiceProvider);
-  return DecodingNotifier(api, local, ref);
+  return DecodingNotifier(api, ref, smartProcessing);
 });
 
 // ===== Verification State =====
@@ -374,10 +368,10 @@ class VerificationState {
 
 class VerificationNotifier extends StateNotifier<VerificationState> {
   final ApiService _apiService;
-  final LocalService _localService;
   final Ref _ref;
+  final SmartProcessingService _smartProcessing;
 
-  VerificationNotifier(this._apiService, this._localService, this._ref) : super(VerificationState());
+  VerificationNotifier(this._apiService, this._ref, this._smartProcessing) : super(VerificationState());
 
   Future<void> verify({
     required String audioFilePath,
@@ -389,34 +383,24 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
     try {
       VerifyResult result;
 
-      if (mode == WatermarkMode.cloud || mode == WatermarkMode.hybrid) {
-        try {
-          result = await _apiService.verify(
-            audioFilePath: audioFilePath,
-            message: expectedMessage,
-          );
-        } catch (e) {
-          if (mode == WatermarkMode.hybrid) {
-            state = state.copyWith(progress: 0.5);
-            throw ProcessingError(
-              message: 'Cloud processing failed. Local fallback not yet available.',
-              code: 'LOCAL_FALLBACK_UNAVAILABLE',
-              originalError: e,
-              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
-            );
-          } else {
-            rethrow;
-          }
-        }
+      if (mode == WatermarkMode.hybrid) {
+        // Hybrid mode: Use smart processing (cloud-first)
+        result = await _smartProcessing.verify(
+          audioFilePath: audioFilePath,
+          message: expectedMessage,
+        );
+      } else if (mode == WatermarkMode.cloud) {
+        // Cloud only mode
+        result = await _apiService.verify(
+          audioFilePath: audioFilePath,
+          message: expectedMessage,
+        );
       } else {
+        // Local mode: Not implemented for mobile
         throw ProcessingError(
-          message: 'Local processing not yet available',
-          code: 'LOCAL_PROCESSING_UNAVAILABLE',
-          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
-              'For Cloud mode to work, ensure your device:\n'
-              '1. Has internet connectivity\n'
-              '2. Can reach the AudioGuard backend server\n'
-              '3. Is on the same network as the backend if using local IP',
+          message: 'Local processing not available',
+          code: 'LOCAL_NOT_AVAILABLE',
+          details: 'Local processing is currently in development. Please use Cloud or Hybrid mode.',
         );
       }
 
@@ -455,9 +439,9 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
 
 final verificationProvider =
     StateNotifierProvider<VerificationNotifier, VerificationState>((ref) {
+  final smartProcessing = ref.watch(smartProcessingServiceProvider);
   final api = ref.watch(apiServiceProvider);
-  final local = ref.watch(localServiceProvider);
-  return VerificationNotifier(api, local, ref);
+  return VerificationNotifier(api, ref, smartProcessing);
 });
 
 // ===== Analysis State =====
@@ -488,10 +472,10 @@ class AnalysisState {
 
 class AnalysisNotifier extends StateNotifier<AnalysisState> {
   final ApiService _apiService;
-  final LocalService _localService;
   final Ref _ref;
+  final SmartProcessingService _smartProcessing;
 
-  AnalysisNotifier(this._apiService, this._localService, this._ref) : super(AnalysisState());
+  AnalysisNotifier(this._apiService, this._ref, this._smartProcessing) : super(AnalysisState());
 
   Future<void> analyze({
     required String audioFilePath,
@@ -502,31 +486,18 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
     try {
       AnalysisResult result;
 
-      if (mode == WatermarkMode.cloud || mode == WatermarkMode.hybrid) {
-        try {
-          result = await _apiService.analyze(audioFilePath: audioFilePath);
-        } catch (e) {
-          if (mode == WatermarkMode.hybrid) {
-            state = state.copyWith(progress: 0.5);
-            throw ProcessingError(
-              message: 'Cloud processing failed. Local fallback not yet available.',
-              code: 'LOCAL_FALLBACK_UNAVAILABLE',
-              originalError: e,
-              details: 'Please ensure your device has internet connectivity or the backend server is reachable.',
-            );
-          } else {
-            rethrow;
-          }
-        }
+      if (mode == WatermarkMode.hybrid) {
+        // Hybrid mode: Use smart processing (cloud-first)
+        result = await _smartProcessing.analyze(audioFilePath: audioFilePath);
+      } else if (mode == WatermarkMode.cloud) {
+        // Cloud only mode
+        result = await _apiService.analyze(audioFilePath: audioFilePath);
       } else {
+        // Local mode: Not implemented for mobile
         throw ProcessingError(
-          message: 'Local processing not yet available',
-          code: 'LOCAL_PROCESSING_UNAVAILABLE',
-          details: 'Local processing mode is currently in development. Please use Cloud mode instead.\n\n'
-              'For Cloud mode to work, ensure your device:\n'
-              '1. Has internet connectivity\n'
-              '2. Can reach the AudioGuard backend server\n'
-              '3. Is on the same network as the backend if using local IP',
+          message: 'Local processing not available',
+          code: 'LOCAL_NOT_AVAILABLE',
+          details: 'Local processing is currently in development. Please use Cloud or Hybrid mode.',
         );
       }
 
@@ -565,9 +536,9 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
 
 final analysisProvider =
     StateNotifierProvider<AnalysisNotifier, AnalysisState>((ref) {
+  final smartProcessing = ref.watch(smartProcessingServiceProvider);
   final api = ref.watch(apiServiceProvider);
-  final local = ref.watch(localServiceProvider);
-  return AnalysisNotifier(api, local, ref);
+  return AnalysisNotifier(api, ref, smartProcessing);
 });
 
 // ===== Settings State =====

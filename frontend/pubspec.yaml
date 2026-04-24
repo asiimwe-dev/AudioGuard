@@ -58,6 +58,9 @@ dependencies:
   # Permissions
   permission_handler: ^11.3.0
 
+  # Connectivity
+  connectivity_plus: ^5.0.0
+
   # URL Launcher
   url_launcher: ^6.2.0
   
