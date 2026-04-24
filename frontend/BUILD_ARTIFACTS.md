@@ -237,10 +237,10 @@ android/
 
 ## Contact & Support
 
-- **Developer**: AudioGuard Team
-- **Project Repository**: [GitHub AudioGuard Mobile](https://github.com/audioguard/audioguard_mobile)
+- **Developer**: Asiimwe Gilbert
+- **Project Repository**: [GitHub AudioGuard Mobile](https://github.com/asiimwe-dev/AudioGuard)
 - **Backend API**: Flask service (separate deployment)
-- **Documentation**: See README.md and FLUTTER_PHASE5_COMPLETE.md
+- **Documentation**: See README.md
 
 ---
 
