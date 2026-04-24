@@ -35,13 +35,13 @@ class AboutScreen extends StatelessWidget {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      size: 50,
-                      color: Colors.white,
+                    child: Image.asset(
+                      'assets/icon/icon.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(height: 24),

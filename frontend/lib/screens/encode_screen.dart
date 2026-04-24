@@ -30,6 +30,18 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
     super.dispose();
   }
 
+  String _getErrorMessage(Object error) {
+    if (error is ProcessingError) {
+      return error.details ?? error.message;
+    }
+    final message = error.toString();
+    // Clean up stack traces
+    if (message.contains('Exception:')) {
+      return message.split('Exception:').last.trim().split('\n').first;
+    }
+    return message.split('\n').first;
+  }
+
   Future<void> _pickAudioFile() async {
     final audioService = ref.read(audioServiceProvider);
     final file = await audioService.pickAudioFile();
@@ -310,12 +322,22 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        error is ProcessingError && error.details != null
-                            ? error.details!
-                            : error.toString(),
+                        _getErrorMessage(error),
                         style: TextStyle(
                           color: Colors.red[700],
                           fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try Again'),
+                          onPressed: () {
+                            ref.read(encodingProvider.notifier).reset();
+                          },
                         ),
                       ),
                     ],
