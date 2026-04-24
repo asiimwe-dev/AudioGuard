@@ -527,14 +527,24 @@ def create_app(debug: bool = False) -> FastAPI:
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+            # Validate watermark: only report if message contains mostly printable characters
+            # This prevents false positives from random bit patterns  
+            watermark_present = False
+            if message is not None:
+                # Check if at least 70% of characters are printable/ASCII
+                printable_count = sum(1 for c in str(message) if 32 <= ord(c) <= 126)
+                if len(message) > 0:
+                    printable_ratio = printable_count / len(message)
+                    watermark_present = (printable_ratio >= 0.7)
+
             return AnalyzeResponse(
                 success=True,
-                watermark_present=message is not None,
-                signal_strength=confidence,
+                watermark_present=watermark_present,
+                signal_strength=confidence if watermark_present else 0.0,
                 spectral_info={
-                    "snr_db": float(snr) if snr is not None else 0.0,
-                    "message_detected": message is not None,
-                    "confidence": float(confidence),
+                    "snr_db": float(snr) if (snr is not None and watermark_present) else 0.0,
+                    "message_detected": watermark_present,
+                    "confidence": float(confidence) if watermark_present else 0.0,
                 },
                 processing_time_ms=processing_time,
             )
