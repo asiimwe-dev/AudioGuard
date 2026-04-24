@@ -4,6 +4,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=flat&logo=flutter&logoColor=white)](https://flutter.dev/)
 [![Platform: Mobile](https://img.shields.io/badge/Platform-Android%20|%20iOS-green.svg)]()
 [![Engine: Fourier Analysis](https://img.shields.io/badge/Engine-STFT-orange.svg)]()
 
