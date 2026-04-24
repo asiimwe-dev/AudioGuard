@@ -5,6 +5,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
 import '../models/watermark_model.dart';
+import '../widgets/audio_player_widget.dart';
 
 /// Encoding screen - add watermark to audio
 class EncodeScreen extends ConsumerStatefulWidget {
@@ -139,6 +140,15 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                       OutlinedButton(
                         onPressed: _pickAudioFile,
                         child: const Text('Change File'),
+                      ),
+                      const SizedBox(height: 16),
+                      // Audio Player Widget
+                      AudioPlayerWidget(
+                        filePath: audioPath,
+                        fileName: audioMetadata.maybeWhen(
+                          data: (metadata) => metadata?.filename,
+                          orElse: () => null,
+                        ),
                       ),
                     ],
                   ],

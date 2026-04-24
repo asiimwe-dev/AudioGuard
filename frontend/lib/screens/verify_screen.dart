@@ -4,6 +4,7 @@ import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
+import '../widgets/audio_player_widget.dart';
 
 /// Verification screen - verify watermark authenticity
 class VerifyScreen extends ConsumerStatefulWidget {
@@ -106,6 +107,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Audio Player Widget
+                  AudioPlayerWidget(
+                    filePath: audioPath,
+                    fileName: audioPath.split('/').last,
                   ),
                   const SizedBox(height: 20),
 

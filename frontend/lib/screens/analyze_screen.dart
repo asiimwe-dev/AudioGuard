@@ -4,6 +4,7 @@ import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
+import '../widgets/audio_player_widget.dart';
 
 /// Analysis screen - analyze audio and detect watermark presence
 class AnalyzeScreen extends ConsumerWidget {
@@ -87,6 +88,12 @@ class AnalyzeScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Audio Player Widget
+                  AudioPlayerWidget(
+                    filePath: audioPath,
+                    fileName: audioPath.split('/').last,
                   ),
                   const SizedBox(height: 20),
 
