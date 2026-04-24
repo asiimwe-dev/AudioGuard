@@ -5,6 +5,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
 import '../models/watermark_model.dart';
+import '../widgets/audio_player_widget.dart';
 
 /// Decoding screen - extract watermark from audio
 class DecodeScreen extends ConsumerStatefulWidget {
@@ -87,7 +88,7 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                         label: const Text('Select Audio File'),
                         onPressed: _pickAudioFile,
                       )
-                    else
+                    else ...[
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -116,6 +117,13 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      // Audio Player Widget
+                      AudioPlayerWidget(
+                        filePath: audioPath,
+                        fileName: audioPath.split('/').last,
+                      ),
+                    ],
                   ],
                 ),
               ),
