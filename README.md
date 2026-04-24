@@ -60,10 +60,10 @@ The mobile application serves as the interface for **Signing** and **Verifying**
 
 ## Development Roadmap
 
-- [ ] **Phase 1: Spectral Engine:** Develop the core Python library for FFT-based embedding and extraction.
-- [ ] **Phase 2: Psychoacoustic Model:** Implement masking curves to ensure watermark inaudibility.
-- [ ] **Phase 3: Robustness Layer:** Train a CNN to detect watermarks in low-bitrate MP3s and noisy environments.
-- [ ] **Phase 4: Mobile Integration:** Build the Flutter/React Native UI and integrate the Python engine via a REST API or TFLite.
+- [x] **Phase 1: Spectral Engine:** Develop the core Python library for FFT-based embedding and extraction.
+- [x] **Phase 2: Psychoacoustic Model:** Implement masking curves to ensure watermark inaudibility.
+- [x] **Phase 3: Robustness Layer:** Train a CNN to detect watermarks in low-bitrate MP3s and noisy environments.
+- [x] **Phase 4: Mobile Integration:** Build the Flutter/React Native UI and integrate the Python engine via a REST API or TFLite.
 - [ ] **Phase 5: Public Release:** Documentation and API access for independent creators.
 
 ---
