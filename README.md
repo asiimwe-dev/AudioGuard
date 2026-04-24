@@ -50,10 +50,10 @@ The mobile application serves as the interface for **Signing** and **Verifying**
 | Layer | Technology |
 | :--- | :--- |
 | **Core Engine** | Python 3.11 (NumPy, Librosa, SciPy) |
-| **Mobile Framework** | Flutter or React Native (Cross-platform) |
+| **Mobile Framework** | Flutter (Cross-platform) |
 | **Edge Math** | Numba (JIT Compilation for high-speed FFT) |
 | **Robustness AI** | PyTorch (CNN-based watermark extraction) |
-| **Containerization** | Podman (Environment isolation for the backend) |
+| **Containerization** | Docker (Environment isolation for the backend) |
 | **Development OS** | Fedora Linux (Primary workstation) |
 
 ---
