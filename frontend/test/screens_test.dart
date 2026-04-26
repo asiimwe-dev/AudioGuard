@@ -15,7 +15,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const EncodeScreen(),
           ),
         ),
@@ -30,7 +30,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const DecodeScreen(),
           ),
         ),
@@ -45,7 +45,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const VerifyScreen(),
           ),
         ),
@@ -60,7 +60,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const AnalyzeScreen(),
           ),
         ),
@@ -75,7 +75,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const SettingsScreen(),
           ),
         ),
@@ -92,7 +92,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const EncodeScreen(),
           ),
         ),
@@ -106,7 +106,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const DecodeScreen(),
           ),
         ),
@@ -120,7 +120,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const VerifyScreen(),
           ),
         ),
@@ -134,7 +134,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const AnalyzeScreen(),
           ),
         ),
@@ -150,7 +150,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const SettingsScreen(),
           ),
         ),
@@ -166,7 +166,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const SettingsScreen(),
           ),
         ),
@@ -181,7 +181,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
+            theme: AppTheme.lightTheme(1.0),
             home: const SettingsScreen(),
           ),
         ),
@@ -208,7 +208,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             child: MaterialApp(
-              theme: AppTheme.lightTheme(),
+              theme: AppTheme.lightTheme(1.0),
               home: screen,
             ),
           ),

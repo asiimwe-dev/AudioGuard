@@ -7,10 +7,25 @@ import '../utils/constants.dart';
 import '../widgets/audio_player_widget.dart';
 
 /// Analysis screen - analyze audio and detect watermark presence
-class AnalyzeScreen extends ConsumerWidget {
+class AnalyzeScreen extends ConsumerStatefulWidget {
   const AnalyzeScreen({super.key});
 
-  Future<void> _pickAudioFile(WidgetRef ref) async {
+  @override
+  ConsumerState<AnalyzeScreen> createState() => _AnalyzeScreenState();
+}
+
+class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Clear selection when entering analyze screen as requested
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedAudioFileProvider.notifier).state = null;
+      ref.read(analysisProvider.notifier).reset();
+    });
+  }
+
+  Future<void> _pickAudioFile() async {
     final audioService = ref.read(audioServiceProvider);
     final file = await audioService.pickAudioFile();
     if (file != null) {
@@ -19,7 +34,7 @@ class AnalyzeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final audioPath = ref.watch(selectedAudioFileProvider);
     final analysisState = ref.watch(analysisProvider);
     final mode = ref.watch(watermarkModeProvider);
@@ -37,7 +52,7 @@ class AnalyzeScreen extends ConsumerWidget {
         elevation: 0,
       ),
       body: audioPath == null
-          ? _buildEmptyState(context, ref)
+          ? _buildEmptyState(context)
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -82,7 +97,7 @@ class AnalyzeScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           ElevatedButton(
-                            onPressed: () => _pickAudioFile(ref),
+                            onPressed: _pickAudioFile,
                             child: const Text('Change File'),
                           ),
                         ],
@@ -186,7 +201,7 @@ class AnalyzeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -203,7 +218,7 @@ class AnalyzeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           ElevatedButton.icon(
-            onPressed: () => _pickAudioFile(ref),
+            onPressed: _pickAudioFile,
             icon: const Icon(Icons.folder_open),
             label: const Text('Select Audio File'),
           ),

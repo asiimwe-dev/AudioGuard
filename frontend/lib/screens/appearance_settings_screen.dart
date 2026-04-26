@@ -1,340 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/watermark_model.dart';
-import '../theme/app_theme.dart';
-import '../providers/navigation_provider.dart';
+import '../providers/ui_provider.dart';
 
-/// Appearance settings screen - configure UI preferences (full screen)
-class AppearanceSettingsScreen extends ConsumerStatefulWidget {
+/// Screen for managing application appearance settings
+class AppearanceSettingsScreen extends ConsumerWidget {
   const AppearanceSettingsScreen({super.key});
 
   @override
-  ConsumerState<AppearanceSettingsScreen> createState() =>
-      _AppearanceSettingsScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appearance = ref.watch(appearanceProvider);
 
-class _AppearanceSettingsScreenState
-    extends ConsumerState<AppearanceSettingsScreen> {
-  late String _selectedFontFamily;
-  late String _selectedFontSize;
-  late String _selectedTheme;
-  late String _selectedContrast;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedFontFamily = 'Roboto';
-    _selectedFontSize = 'medium';
-    _selectedTheme = 'auto';
-    _selectedContrast = 'normal';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
-
-    return WillPopScope(
-      onWillPop: () async {
-        ref.read(currentSettingsScreenProvider.notifier).state = SettingsSubScreen.main;
-        return false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Appearance Settings'),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              ref.read(currentSettingsScreenProvider.notifier).state = SettingsSubScreen.main;
-            },
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Appearance'),
+      ),
+      body: ListView(
+        children: [
+          // Theme Mode Section
+          _SectionHeader(title: 'Theme'),
+          RadioListTile<AppThemeMode>(
+            title: const Text('System Default'),
+            value: AppThemeMode.system,
+            groupValue: appearance.themeMode,
+            onChanged: (value) => ref.read(appearanceProvider.notifier).setThemeMode(value!),
           ),
-        ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+          RadioListTile<AppThemeMode>(
+            title: const Text('Light Mode'),
+            value: AppThemeMode.light,
+            groupValue: appearance.themeMode,
+            onChanged: (value) => ref.read(appearanceProvider.notifier).setThemeMode(value!),
+          ),
+          RadioListTile<AppThemeMode>(
+            title: const Text('Dark Mode'),
+            value: AppThemeMode.dark,
+            groupValue: appearance.themeMode,
+            onChanged: (value) => ref.read(appearanceProvider.notifier).setThemeMode(value!),
+          ),
+
+          const Divider(),
+
+          // Font Scaling Section
+          _SectionHeader(title: 'Text Size'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Responsive Layout: Stacked on small screens, side-by-side on large
-                isSmallScreen
-                    ? _buildVerticalLayout(context)
-                    : _buildHorizontalLayout(context),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Small'),
+                    Text('${(appearance.fontSizeScale * 100).toInt()}%'),
+                    const Text('Large'),
+                  ],
+                ),
+                Slider(
+                  value: appearance.fontSizeScale,
+                  min: 0.8,
+                  max: 1.4,
+                  divisions: 6,
+                  onChanged: (value) => ref.read(appearanceProvider.notifier).setFontSizeScale(value),
+                ),
+                Text(
+                  'Adjust the slider to scale application text size. This changes will apply immediately across all screens.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildVerticalLayout(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Font Family Section
-        _buildSectionTitle('Font Family'),
-        const SizedBox(height: 12),
-        _buildRadioGroup(
-          items: {
-            'Roboto': 'Roboto (Default)',
-            'Lato': 'Lato (Modern)',
-            'Playfair': 'Playfair Display (Elegant)',
-          },
-          selected: _selectedFontFamily,
-          onChanged: (value) {
-            setState(() => _selectedFontFamily = value);
-          },
-        ),
-        const SizedBox(height: 32),
+          const SizedBox(height: 32),
 
-        // Font Size Section
-        _buildSectionTitle('Font Size'),
-        const SizedBox(height: 12),
-        _buildRadioGroup(
-          items: {
-            'small': 'Small (12dp base)',
-            'medium': 'Medium (16dp base) - Default',
-            'large': 'Large (18dp base)',
-            'xlarge': 'Extra Large (20dp base)',
-          },
-          selected: _selectedFontSize,
-          onChanged: (value) {
-            setState(() => _selectedFontSize = value);
-          },
-        ),
-        const SizedBox(height: 32),
-
-        // Theme Section
-        _buildSectionTitle('Theme'),
-        const SizedBox(height: 12),
-        _buildRadioGroup(
-          items: {
-            'light': 'Light Mode',
-            'dark': 'Dark Mode',
-            'auto': 'Auto (Follow System)',
-          },
-          selected: _selectedTheme,
-          onChanged: (value) {
-            setState(() => _selectedTheme = value);
-          },
-        ),
-        const SizedBox(height: 32),
-
-        // Contrast Section
-        _buildSectionTitle('Contrast'),
-        const SizedBox(height: 12),
-        _buildRadioGroup(
-          items: {
-            'normal': 'Normal Contrast',
-            'high': 'High Contrast (Better Accessibility)',
-          },
-          selected: _selectedContrast,
-          onChanged: (value) {
-            setState(() => _selectedContrast = value);
-          },
-        ),
-        const SizedBox(height: 32),
-
-        // Preview Section
-        _buildPreview(context),
-        const SizedBox(height: 32),
-
-        // Action Buttons
-        _buildActionButtons(context),
-      ],
-    );
-  }
-
-  Widget _buildHorizontalLayout(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Font Family'),
-                  const SizedBox(height: 12),
-                  _buildRadioGroup(
-                    items: {
-                      'Roboto': 'Roboto (Default)',
-                      'Lato': 'Lato (Modern)',
-                      'Playfair': 'Playfair Display (Elegant)',
-                    },
-                    selected: _selectedFontFamily,
-                    onChanged: (value) {
-                      setState(() => _selectedFontFamily = value);
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle('Font Size'),
-                  const SizedBox(height: 12),
-                  _buildRadioGroup(
-                    items: {
-                      'small': 'Small (12dp base)',
-                      'medium': 'Medium (16dp base) - Default',
-                      'large': 'Large (18dp base)',
-                      'xlarge': 'Extra Large (20dp base)',
-                    },
-                    selected: _selectedFontSize,
-                    onChanged: (value) {
-                      setState(() => _selectedFontSize = value);
-                    },
-                  ),
-                ],
+          // Preview Section
+          _SectionHeader(title: 'Preview'),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Headline Preview',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'This is how your body text will look with the current scaling and theme settings.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 32),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Theme'),
-                  const SizedBox(height: 12),
-                  _buildRadioGroup(
-                    items: {
-                      'light': 'Light Mode',
-                      'dark': 'Dark Mode',
-                      'auto': 'Auto (Follow System)',
-                    },
-                    selected: _selectedTheme,
-                    onChanged: (value) {
-                      setState(() => _selectedTheme = value);
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle('Contrast'),
-                  const SizedBox(height: 12),
-                  _buildRadioGroup(
-                    items: {
-                      'normal': 'Normal Contrast',
-                      'high': 'High Contrast (Better Accessibility)',
-                    },
-                    selected: _selectedContrast,
-                    onChanged: (value) {
-                      setState(() => _selectedContrast = value);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-        _buildPreview(context),
-        const SizedBox(height: 32),
-        _buildActionButtons(context),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge,
-    );
-  }
-
-  Widget _buildPreview(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainer,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Preview',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'This is how your heading will look',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This is how your body text will look - it should be easy to read',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This is smaller detail text',
-            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildActionButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _saveSettings,
-            child: const Text('Apply & Save'),
-          ),
-        ),
-      ],
-    );
-  }
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
 
-  Widget _buildRadioGroup({
-    required Map<String, String> items,
-    required String selected,
-    required ValueChanged<String> onChanged,
-  }) {
-    return Column(
-      children: items.entries.map((entry) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Card(
-            child: RadioListTile<String>(
-              title: Text(
-                entry.value,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              value: entry.key,
-              groupValue: selected,
-              onChanged: (value) {
-                if (value != null) onChanged(value);
-              },
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  void _saveSettings() {
-    // TODO: Implement saving to secure storage and applying theme
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Appearance settings saved! Changes will apply on app restart.',
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          letterSpacing: 1.2,
         ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
       ),
     );
-    // Go back to main settings instead of popping
-    ref.read(currentSettingsScreenProvider.notifier).state = SettingsSubScreen.main;
   }
 }

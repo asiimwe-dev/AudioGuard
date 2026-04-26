@@ -89,6 +89,7 @@ class EncodingResult {
   final int originalFileSize;
   final int encodedFileSize;
   final DateTime timestamp;
+  final bool success;
 
   EncodingResult({
     String? id,
@@ -100,8 +101,10 @@ class EncodingResult {
     required this.originalFileSize,
     required this.encodedFileSize,
     DateTime? timestamp,
+    bool? success,
   })  : id = id ?? const Uuid().v4(),
-        timestamp = timestamp ?? DateTime.now();
+        timestamp = timestamp ?? DateTime.now(),
+        success = success ?? (encodedFilePath.isNotEmpty || fileId != null);
 
   /// Size increase percentage
   double get sizeIncreasePercent =>

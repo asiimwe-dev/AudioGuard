@@ -10,8 +10,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: AppTheme.lightTheme(1.0),
+            darkTheme: AppTheme.darkTheme(1.0),
             home: const HomeScreen(),
           ),
         ),
@@ -25,8 +25,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: AppTheme.lightTheme(1.0),
+            darkTheme: AppTheme.darkTheme(1.0),
             home: const HomeScreen(),
           ),
         ),
@@ -39,8 +39,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: AppTheme.lightTheme(1.0),
+            darkTheme: AppTheme.darkTheme(1.0),
             home: const HomeScreen(),
           ),
         ),
@@ -54,8 +54,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: AppTheme.lightTheme(1.0),
+            darkTheme: AppTheme.darkTheme(1.0),
             home: const HomeScreen(),
           ),
         ),
@@ -68,8 +68,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: AppTheme.lightTheme(1.0),
+            darkTheme: AppTheme.darkTheme(1.0),
             home: const HomeScreen(),
           ),
         ),

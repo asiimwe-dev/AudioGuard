@@ -22,6 +22,13 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
   void initState() {
     super.initState();
     _messageLengthController = TextEditingController();
+    
+    // Clear the global selection when entering the decode screen 
+    // to ensure the user supplies a fresh file as requested.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedAudioFileProvider.notifier).state = null;
+      ref.read(decodingProvider.notifier).reset();
+    });
   }
 
   @override

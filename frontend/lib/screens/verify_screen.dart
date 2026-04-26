@@ -21,6 +21,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   void initState() {
     super.initState();
     _messageController = TextEditingController();
+
+    // Clear selection when entering verify screen as requested
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedAudioFileProvider.notifier).state = null;
+      ref.read(verificationProvider.notifier).reset();
+    });
   }
 
   @override

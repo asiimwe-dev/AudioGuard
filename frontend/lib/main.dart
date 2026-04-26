@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/app_shell.dart';
 import 'theme/app_theme.dart';
-import 'providers/watermark_provider.dart';
+import 'providers/ui_provider.dart';
 import 'services/storage_service.dart';
 
 void main() async {
@@ -27,16 +27,23 @@ class AudioGuardApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Load settings once at startup
-    ref.read(settingsProvider.notifier).loadSettings(ref.read(storageServiceProvider));
+    final appearance = ref.watch(appearanceProvider);
 
     return MaterialApp(
       title: 'AudioGuard',
-      theme: AppTheme.lightTheme(),
-      darkTheme: AppTheme.darkTheme(),
-      themeMode: ThemeMode.system,
+      theme: AppTheme.lightTheme(appearance.fontSizeScale),
+      darkTheme: AppTheme.darkTheme(appearance.fontSizeScale),
+      themeMode: _getThemeMode(appearance.themeMode),
       home: const AppShell(),
       debugShowCheckedModeBanner: false,
     );
+  }
+
+  ThemeMode _getThemeMode(AppThemeMode mode) {
+    return switch (mode) {
+      AppThemeMode.light => ThemeMode.light,
+      AppThemeMode.dark => ThemeMode.dark,
+      AppThemeMode.system => ThemeMode.system,
+    };
   }
 }

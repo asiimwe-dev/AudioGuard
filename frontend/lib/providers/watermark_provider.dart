@@ -7,12 +7,9 @@ import '../services/local_service.dart';
 import '../services/smart_processing_service.dart';
 import '../services/audio_service.dart';
 import '../utils/constants.dart';
+import 'ui_provider.dart';
 
 // ===== Service Providers =====
-
-final storageServiceProvider = Provider((ref) {
-  return StorageService();
-});
 
 final apiServiceProvider = Provider((ref) {
   final settings = ref.watch(settingsProvider);
@@ -69,40 +66,6 @@ final audioMetadataProvider = FutureProvider<AudioMetadata?>((ref) async {
 final watermarkModeProvider = StateProvider<WatermarkMode>((ref) {
   final settings = ref.watch(settingsProvider);
   return settings.defaultMode;
-});
-
-// ===== History State =====
-
-class HistoryEntry {
-  final String operationType;
-  final String mode;
-  final DateTime timestamp;
-  final bool success;
-  final double? confidence;
-
-  HistoryEntry({
-    required this.operationType,
-    required this.mode,
-    required this.timestamp,
-    required this.success,
-    this.confidence,
-  });
-}
-
-class HistoryNotifier extends StateNotifier<List<HistoryEntry>> {
-  HistoryNotifier() : super([]);
-
-  void addEntry(HistoryEntry entry) {
-    state = [entry, ...state];
-  }
-
-  void clear() {
-    state = [];
-  }
-}
-
-final historyProvider = StateNotifierProvider<HistoryNotifier, List<HistoryEntry>>((ref) {
-  return HistoryNotifier();
 });
 
 // ===== Stats State =====
@@ -209,10 +172,12 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'encode',
-        mode: mode.label,
+        filename: audioFilePath.split('/').last,
         timestamp: DateTime.now(),
-        success: result.id != null,
+        success: result.success,
         confidence: result.confidence,
+        mode: mode.label,
+        message: message,
       ));
     } catch (e) {
       state = state.copyWith(
@@ -223,9 +188,10 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'encode',
-        mode: mode.label,
+        filename: audioFilePath.split('/').last,
         timestamp: DateTime.now(),
         success: false,
+        mode: mode.label,
       ));
 
       rethrow;
@@ -283,6 +249,7 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
     required WatermarkMode mode,
   }) async {
     state = state.copyWith(isProcessing: true, progress: 0.1);
+    final audioPath = _ref.read(selectedAudioFileProvider);
 
     try {
       final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
@@ -322,10 +289,12 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'decode',
-        mode: mode.label,
+        filename: audioPath?.split('/').last ?? 'Unknown',
         timestamp: DateTime.now(),
         success: result.success,
         confidence: result.confidence,
+        mode: mode.label,
+        message: result.message,
       ));
     } catch (e) {
       state = state.copyWith(
@@ -336,9 +305,10 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'decode',
-        mode: mode.label,
+        filename: audioPath?.split('/').last ?? 'Unknown',
         timestamp: DateTime.now(),
         success: false,
+        mode: mode.label,
       ));
 
       rethrow;
@@ -396,6 +366,7 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
     required WatermarkMode mode,
   }) async {
     state = state.copyWith(isProcessing: true, progress: 0.1);
+    final audioPath = _ref.read(selectedAudioFileProvider);
 
     try {
       final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
@@ -435,10 +406,12 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'verify',
-        mode: mode.label,
+        filename: audioPath?.split('/').last ?? 'Unknown',
         timestamp: DateTime.now(),
         success: result.isValid,
         confidence: result.confidence,
+        mode: mode.label,
+        message: expectedMessage,
       ));
     } catch (e) {
       state = state.copyWith(
@@ -449,9 +422,10 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'verify',
-        mode: mode.label,
+        filename: audioPath?.split('/').last ?? 'Unknown',
         timestamp: DateTime.now(),
         success: false,
+        mode: mode.label,
       ));
 
       rethrow;
@@ -508,6 +482,7 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
     required WatermarkMode mode,
   }) async {
     state = state.copyWith(isProcessing: true, progress: 0.1);
+    final audioPath = _ref.read(selectedAudioFileProvider);
 
     try {
       final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
@@ -541,10 +516,11 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'analyze',
-        mode: mode.label,
+        filename: audioPath?.split('/').last ?? 'Unknown',
         timestamp: DateTime.now(),
         success: true,
         confidence: result.confidence,
+        mode: mode.label,
       ));
     } catch (error, stackTrace) {
       state = state.copyWith(
@@ -554,9 +530,10 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
       
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'analyze',
-        mode: mode.label,
+        filename: audioPath?.split('/').last ?? 'Unknown',
         timestamp: DateTime.now(),
         success: false,
+        mode: mode.label,
       ));
       
       rethrow;

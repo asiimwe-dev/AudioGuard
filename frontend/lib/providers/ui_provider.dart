@@ -1,5 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/constants.dart';
+import '../services/storage_service.dart';
+import '../models/watermark_model.dart';
+import 'dart:convert';
 
 // ===== Message Validation =====
 
@@ -50,47 +54,148 @@ final messageValidationProvider =
   }
 });
 
-// ===== Recent Files =====
+// ===== Operation History =====
 
-class RecentFile {
-  final String path;
+class HistoryEntry {
+  final String operationType;
   final String filename;
-  final DateTime lastModified;
-  final int fileSize;
+  final DateTime timestamp;
+  final bool success;
+  final double? confidence;
+  final String? message;
+  final String mode;
 
-  RecentFile({
-    required this.path,
+  HistoryEntry({
+    required this.operationType,
     required this.filename,
-    required this.lastModified,
-    required this.fileSize,
+    required this.timestamp,
+    required this.success,
+    this.confidence,
+    this.message,
+    required this.mode,
   });
+
+  Map<String, dynamic> toJson() => {
+        'operationType': operationType,
+        'filename': filename,
+        'timestamp': timestamp.toIso8601String(),
+        'success': success,
+        'confidence': confidence,
+        'message': message,
+        'mode': mode,
+      };
+
+  factory HistoryEntry.fromJson(Map<String, dynamic> json) => HistoryEntry(
+        operationType: json['operationType'],
+        filename: json['filename'],
+        timestamp: DateTime.parse(json['timestamp']),
+        success: json['success'],
+        confidence: json['confidence']?.toDouble(),
+        message: json['message'],
+        mode: json['mode'] ?? 'cloud',
+      );
 }
 
-class RecentFilesNotifier extends StateNotifier<List<RecentFile>> {
-  static const int maxRecentFiles = 20;
+class HistoryNotifier extends StateNotifier<List<HistoryEntry>> {
+  final StorageService _storage;
+  static const String _storageKey = 'operation_history';
 
-  RecentFilesNotifier() : super([]);
+  HistoryNotifier(this._storage) : super([]) {
+    _loadHistory();
+  }
 
-  void addFile(RecentFile file) {
-    state = state.where((f) => f.path != file.path).toList();
-    state = [file, ...state];
-    if (state.length > maxRecentFiles) {
-      state = state.sublist(0, maxRecentFiles);
+  Future<void> _loadHistory() async {
+    final data = await _storage.getString(_storageKey);
+    if (data != null) {
+      try {
+        final List<dynamic> jsonList = json.decode(data);
+        state = jsonList.map((e) => HistoryEntry.fromJson(e)).toList();
+      } catch (_) {
+        state = [];
+      }
     }
   }
 
-  void removeFile(String path) {
-    state = state.where((f) => f.path != path).toList();
+  Future<void> addEntry(HistoryEntry entry) async {
+    state = [entry, ...state].take(50).toList();
+    await _storage.setString(_storageKey, json.encode(state.map((e) => e.toJson()).toList()));
   }
 
-  void clearRecent() {
+  Future<void> clearHistory() async {
     state = [];
+    await _storage.setString(_storageKey, json.encode([]));
   }
 }
 
-final recentFilesProvider =
-    StateNotifierProvider<RecentFilesNotifier, List<RecentFile>>((ref) {
-  return RecentFilesNotifier();
+final storageServiceProvider = Provider((ref) => StorageService());
+
+final historyProvider = StateNotifierProvider<HistoryNotifier, List<HistoryEntry>>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  return HistoryNotifier(storage);
+});
+
+// ===== Appearance Settings =====
+
+enum AppThemeMode { light, dark, system }
+
+class AppearanceSettings {
+  final AppThemeMode themeMode;
+  final double fontSizeScale; // 0.8 to 1.4
+
+  AppearanceSettings({
+    required this.themeMode,
+    required this.fontSizeScale,
+  });
+
+  AppearanceSettings copyWith({
+    AppThemeMode? themeMode,
+    double? fontSizeScale,
+  }) {
+    return AppearanceSettings(
+      themeMode: themeMode ?? this.themeMode,
+      fontSizeScale: fontSizeScale ?? this.fontSizeScale,
+    );
+  }
+}
+
+class AppearanceNotifier extends StateNotifier<AppearanceSettings> {
+  final StorageService _storage;
+
+  AppearanceNotifier(this._storage)
+      : super(AppearanceSettings(
+          themeMode: AppThemeMode.system,
+          fontSizeScale: 1.0,
+        )) {
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final themeStr = await _storage.getString('theme_mode');
+    final scale = await _storage.getInt('font_size_scale', defaultValue: 100);
+
+    state = AppearanceSettings(
+      themeMode: AppThemeMode.values.firstWhere(
+        (e) => e.name == themeStr,
+        orElse: () => AppThemeMode.system,
+      ),
+      fontSizeScale: scale / 100.0,
+    );
+  }
+
+  Future<void> setThemeMode(AppThemeMode mode) async {
+    state = state.copyWith(themeMode: mode);
+    await _storage.setString('theme_mode', mode.name);
+  }
+
+  Future<void> setFontSizeScale(double scale) async {
+    state = state.copyWith(fontSizeScale: scale);
+    await _storage.setInt('font_size_scale', (scale * 100).toInt());
+  }
+}
+
+final appearanceProvider = StateNotifierProvider<AppearanceNotifier, AppearanceSettings>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  return AppearanceNotifier(storage);
 });
 
 // ===== Screen Navigation =====

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
 
 /// Home screen - main dashboard
@@ -52,9 +53,21 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // Recent Operations
-            Text(
-              'Recent Operations',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Operations',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (ref.watch(historyProvider).isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      ref.read(historyProvider.notifier).clearHistory();
+                    },
+                    child: const Text('Clear'),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
             _RecentOperations(),
@@ -188,7 +201,7 @@ class _QuickStatsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Session Statistics',
+              'Global Statistics',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
@@ -415,20 +428,37 @@ class _RecentOperations extends ConsumerWidget {
       itemBuilder: (context, index) {
         final entry = history[index];
         return ListTile(
-          leading: Icon(
-            _getOperationIcon(entry.operationType),
-            color: entry.success ? Colors.green : Colors.red,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (entry.success ? Colors.green : Colors.red).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _getOperationIcon(entry.operationType),
+              color: entry.success ? Colors.green : Colors.red,
+              size: 20,
+            ),
           ),
           title: Text(
-            '${entry.operationType[0].toUpperCase()}${entry.operationType.substring(1)}',
+            '${entry.operationType[0].toUpperCase()}${entry.operationType.substring(1)}: ${entry.filename}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           subtitle: Text(
-            '${entry.mode} • ${entry.timestamp.hour}:${entry.timestamp.minute.toString().padLeft(2, '0')}',
+            '${entry.mode} • ${_formatDateTime(entry.timestamp)}',
+            style: const TextStyle(fontSize: 12),
           ),
-          trailing: Text(
-            '${(entry.confidence ?? 0 * 100).toStringAsFixed(0)}%',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          trailing: entry.confidence != null 
+            ? Text(
+                '${(entry.confidence! * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              )
+            : null,
+          onTap: () {
+            // TODO: Navigate to detail or re-load file
+          },
         );
       },
     );
@@ -442,5 +472,9 @@ class _RecentOperations extends ConsumerWidget {
       'analyze' => Icons.insights,
       _ => Icons.help,
     };
+  }
+
+  String _formatDateTime(DateTime dt) {
+    return '${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
