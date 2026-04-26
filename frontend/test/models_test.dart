@@ -39,10 +39,10 @@ void main() {
         fileSize: 512000,
         format: 'WAV',
       );
-      final afterCreation = DateTime.now();
+      final afterCreation = DateTime.now().add(const Duration(milliseconds: 1));
 
+      expect(metadata.loadedAt.isAfter(beforeCreation), true);
       expect(metadata.loadedAt.isBefore(afterCreation), true);
-      expect(metadata.loadedAt.isAfter(beforeCreation.subtract(const Duration(seconds: 1))), true);
     });
   });
 
@@ -189,10 +189,10 @@ void main() {
         mode: 'local',
         processingTime: const Duration(seconds: 1),
       );
-      final afterCreation = DateTime.now();
+      final afterCreation = DateTime.now().add(const Duration(milliseconds: 1));
 
+      expect(result.timestamp.isAfter(beforeCreation), true);
       expect(result.timestamp.isBefore(afterCreation), true);
-      expect(result.timestamp.isAfter(beforeCreation.subtract(const Duration(seconds: 1))), true);
     });
   });
 

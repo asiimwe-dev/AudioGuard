@@ -46,7 +46,8 @@ void main() {
         ),
       );
 
-      expect(find.byType(SegmentedButton), findsWidgets);
+      expect(find.text('Processing Mode'), findsWidgets);
+      expect(find.text('Change Mode'), findsWidgets);
     });
 
     testWidgets('HomeScreen has action buttons', (WidgetTester tester) async {

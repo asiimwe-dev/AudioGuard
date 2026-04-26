@@ -82,6 +82,7 @@ class WatermarkMessage {
 class EncodingResult {
   final String id;
   final String encodedFilePath;
+  final String? fileId; // Server-assigned file ID for subsequent operations
   final Duration processingTime;
   final String mode; // 'local', 'cloud', 'hybrid'
   final double confidence;
@@ -92,6 +93,7 @@ class EncodingResult {
   EncodingResult({
     String? id,
     required this.encodedFilePath,
+    this.fileId,
     required this.processingTime,
     required this.mode,
     required this.confidence,

@@ -139,7 +139,7 @@ class AnalyzeScreen extends ConsumerWidget {
                         await ref
                             .read(analysisProvider.notifier)
                             .analyze(
-                              audioFilePath: audioPath,
+                              fileId: null,
                               mode: mode,
                             );
                       },

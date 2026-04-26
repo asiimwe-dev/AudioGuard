@@ -5,9 +5,9 @@ import 'package:audioguard_mobile/utils/constants.dart';
 void main() {
   group('WatermarkMode Tests', () {
     test('WatermarkMode has correct labels', () {
-      expect(WatermarkMode.local.label, 'Local');
-      expect(WatermarkMode.cloud.label, 'Cloud');
-      expect(WatermarkMode.hybrid.label, 'Hybrid');
+      expect(WatermarkMode.local.label, 'Local Processing');
+      expect(WatermarkMode.cloud.label, 'Cloud Processing');
+      expect(WatermarkMode.hybrid.label, 'Hybrid (Intelligent Fallback)');
     });
 
     test('WatermarkMode fromString works correctly', () {

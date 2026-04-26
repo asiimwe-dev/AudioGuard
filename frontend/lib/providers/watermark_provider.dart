@@ -50,6 +50,9 @@ final smartProcessingServiceProvider = Provider((ref) {
 /// Selected audio file
 final selectedAudioFileProvider = StateProvider<String?>((ref) => null);
 
+/// Currently selected encoded file ID (from encoding response)
+final selectedEncodedFileIdProvider = StateProvider<String?>((ref) => null);
+
 /// Audio metadata for selected file
 final audioMetadataProvider = FutureProvider<AudioMetadata?>((ref) async {
   final audioPath = ref.watch(selectedAudioFileProvider);
@@ -176,24 +179,26 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
       EncodingResult result;
 
       if (mode == WatermarkMode.hybrid) {
-        // Hybrid mode: Use smart processing (cloud-first)
         result = await _smartProcessing.encode(
           audioFilePath: audioFilePath,
           message: message,
         );
       } else if (mode == WatermarkMode.cloud) {
-        // Cloud only mode
         result = await _apiService.encode(
           audioFilePath: audioFilePath,
           message: message,
         );
       } else {
-        // Local mode: Not implemented for mobile
         throw ProcessingError(
           message: 'Local processing not available',
           code: 'LOCAL_NOT_AVAILABLE',
           details: 'Local processing is currently in development. Please use Cloud or Hybrid mode.',
         );
+      }
+
+      // Store the file_id from the response for subsequent operations
+      if (result.fileId != null && result.fileId!.isNotEmpty) {
+        _ref.read(selectedEncodedFileIdProvider.notifier).state = result.fileId;
       }
 
       state = state.copyWith(
@@ -204,23 +209,26 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'encode',
-        mode: result.mode,
+        mode: mode.label,
         timestamp: DateTime.now(),
-        success: true,
+        success: result.id != null,
         confidence: result.confidence,
       ));
-    } catch (error, stackTrace) {
+    } catch (e) {
       state = state.copyWith(
-        result: AsyncValue.error(error, stackTrace),
+        result: AsyncValue.error(e, StackTrace.current),
+        progress: 0.0,
         isProcessing: false,
       );
-      
+
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'encode',
-        mode: mode.name,
+        mode: mode.label,
         timestamp: DateTime.now(),
         success: false,
       ));
+
+      rethrow;
     }
   }
 
@@ -270,29 +278,35 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
   DecodingNotifier(this._apiService, this._ref, this._smartProcessing) : super(DecodingState());
 
   Future<void> decode({
-    required String audioFilePath,
+    required String? fileId,
     int? messageLength,
     required WatermarkMode mode,
   }) async {
     state = state.copyWith(isProcessing: true, progress: 0.1);
 
     try {
+      final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
+      if (id == null || id.isEmpty) {
+        throw ProcessingError(
+          message: 'No file to decode',
+          code: 'NO_FILE_PROVIDED',
+          details: 'Please encode a file first or provide a file ID',
+        );
+      }
+
       DecodingResult result;
 
       if (mode == WatermarkMode.hybrid) {
-        // Hybrid mode: Use smart processing (cloud-first)
         result = await _smartProcessing.decode(
-          audioFilePath: audioFilePath,
+          fileId: id,
           messageLength: messageLength,
         );
       } else if (mode == WatermarkMode.cloud) {
-        // Cloud only mode
         result = await _apiService.decode(
-          audioFilePath: audioFilePath,
+          fileId: id,
           messageLength: messageLength,
         );
       } else {
-        // Local mode: Not implemented for mobile
         throw ProcessingError(
           message: 'Local processing not available',
           code: 'LOCAL_NOT_AVAILABLE',
@@ -308,23 +322,26 @@ class DecodingNotifier extends StateNotifier<DecodingState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'decode',
-        mode: result.mode,
+        mode: mode.label,
         timestamp: DateTime.now(),
-        success: true,
+        success: result.success,
         confidence: result.confidence,
       ));
-    } catch (error, stackTrace) {
+    } catch (e) {
       state = state.copyWith(
-        result: AsyncValue.error(error, stackTrace),
+        result: AsyncValue.error(e, StackTrace.current),
+        progress: 0.0,
         isProcessing: false,
       );
-      
+
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'decode',
-        mode: mode.name,
+        mode: mode.label,
         timestamp: DateTime.now(),
         success: false,
       ));
+
+      rethrow;
     }
   }
 
@@ -374,29 +391,35 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
   VerificationNotifier(this._apiService, this._ref, this._smartProcessing) : super(VerificationState());
 
   Future<void> verify({
-    required String audioFilePath,
+    required String? fileId,
     required String expectedMessage,
     required WatermarkMode mode,
   }) async {
     state = state.copyWith(isProcessing: true, progress: 0.1);
 
     try {
+      final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
+      if (id == null || id.isEmpty) {
+        throw ProcessingError(
+          message: 'No file to verify',
+          code: 'NO_FILE_PROVIDED',
+          details: 'Please encode a file first or provide a file ID',
+        );
+      }
+
       VerifyResult result;
 
       if (mode == WatermarkMode.hybrid) {
-        // Hybrid mode: Use smart processing (cloud-first)
         result = await _smartProcessing.verify(
-          audioFilePath: audioFilePath,
+          fileId: id,
           message: expectedMessage,
         );
       } else if (mode == WatermarkMode.cloud) {
-        // Cloud only mode
         result = await _apiService.verify(
-          audioFilePath: audioFilePath,
+          fileId: id,
           message: expectedMessage,
         );
       } else {
-        // Local mode: Not implemented for mobile
         throw ProcessingError(
           message: 'Local processing not available',
           code: 'LOCAL_NOT_AVAILABLE',
@@ -412,23 +435,26 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'verify',
-        mode: result.mode,
+        mode: mode.label,
         timestamp: DateTime.now(),
-        success: true,
+        success: result.isValid,
         confidence: result.confidence,
       ));
-    } catch (error, stackTrace) {
+    } catch (e) {
       state = state.copyWith(
-        result: AsyncValue.error(error, stackTrace),
+        result: AsyncValue.error(e, StackTrace.current),
+        progress: 0.0,
         isProcessing: false,
       );
-      
+
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'verify',
-        mode: mode.name,
+        mode: mode.label,
         timestamp: DateTime.now(),
         success: false,
       ));
+
+      rethrow;
     }
   }
 
@@ -478,22 +504,28 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
   AnalysisNotifier(this._apiService, this._ref, this._smartProcessing) : super(AnalysisState());
 
   Future<void> analyze({
-    required String audioFilePath,
+    required String? fileId,
     required WatermarkMode mode,
   }) async {
     state = state.copyWith(isProcessing: true, progress: 0.1);
 
     try {
+      final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
+      if (id == null || id.isEmpty) {
+        throw ProcessingError(
+          message: 'No file to analyze',
+          code: 'NO_FILE_PROVIDED',
+          details: 'Please encode a file first or provide a file ID',
+        );
+      }
+
       AnalysisResult result;
 
       if (mode == WatermarkMode.hybrid) {
-        // Hybrid mode: Use smart processing (cloud-first)
-        result = await _smartProcessing.analyze(audioFilePath: audioFilePath);
+        result = await _smartProcessing.analyze(fileId: id);
       } else if (mode == WatermarkMode.cloud) {
-        // Cloud only mode
-        result = await _apiService.analyze(audioFilePath: audioFilePath);
+        result = await _apiService.analyze(fileId: id);
       } else {
-        // Local mode: Not implemented for mobile
         throw ProcessingError(
           message: 'Local processing not available',
           code: 'LOCAL_NOT_AVAILABLE',
@@ -509,7 +541,7 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
 
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'analyze',
-        mode: result.mode,
+        mode: mode.label,
         timestamp: DateTime.now(),
         success: true,
         confidence: result.confidence,
@@ -522,10 +554,12 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
       
       _ref.read(historyProvider.notifier).addEntry(HistoryEntry(
         operationType: 'analyze',
-        mode: mode.name,
+        mode: mode.label,
         timestamp: DateTime.now(),
         success: false,
       ));
+      
+      rethrow;
     }
   }
 

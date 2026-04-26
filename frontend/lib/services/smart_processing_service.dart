@@ -52,14 +52,14 @@ class SmartProcessingService {
 
   /// Decode with smart cloud processing
   Future<DecodingResult> decode({
-    required String audioFilePath,
+    required String fileId,
     int? messageLength,
   }) async {
     AppLogger.info('Smart Decode: Processing...');
     
     try {
       final result = await _cloudService.decode(
-        audioFilePath: audioFilePath,
+        fileId: fileId,
         messageLength: messageLength,
       );
       return result;
@@ -71,14 +71,14 @@ class SmartProcessingService {
 
   /// Verify with smart cloud processing
   Future<VerifyResult> verify({
-    required String audioFilePath,
+    required String fileId,
     required String message,
   }) async {
     AppLogger.info('Smart Verify: Processing...');
     
     try {
       final result = await _cloudService.verify(
-        audioFilePath: audioFilePath,
+        fileId: fileId,
         message: message,
       );
       return result;
@@ -90,13 +90,13 @@ class SmartProcessingService {
 
   /// Analyze with smart cloud processing
   Future<AnalysisResult> analyze({
-    required String audioFilePath,
+    required String fileId,
   }) async {
     AppLogger.info('Smart Analyze: Processing...');
     
     try {
       final result = await _cloudService.analyze(
-        audioFilePath: audioFilePath,
+        fileId: fileId,
       );
       return result;
     } catch (e) {

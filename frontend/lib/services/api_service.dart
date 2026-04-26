@@ -178,18 +178,19 @@ class AudioGuardApiClient {
 
   /// Decode watermark
   Future<DecodeResponse> decode({
-    required String audioFilePath,
+    required String fileId,
     int? messageLength,
   }) async {
     try {
-      final formData = FormData.fromMap({
-        'audio_file': await MultipartFile.fromFile(audioFilePath),
-        if (messageLength != null) 'message_length': messageLength,
-      });
+      final requestBody = {
+        'file_id': fileId,
+        'use_cnn': false,
+        'confidence_threshold': 0.5,
+      };
 
       final response = await dio.post(
         '$baseUrl${AppConstants.decodeEndpoint}',
-        data: formData,
+        data: requestBody,
       );
 
       return DecodeResponse.fromJson(response.data);
@@ -204,18 +205,18 @@ class AudioGuardApiClient {
 
   /// Verify watermark
   Future<VerifyResponse> verify({
-    required String audioFilePath,
+    required String fileId,
     required String message,
   }) async {
     try {
-      final formData = FormData.fromMap({
-        'audio_file': await MultipartFile.fromFile(audioFilePath),
-        'message': message,
-      });
+      final requestBody = {
+        'file_id': fileId,
+        'expected_message': message,
+      };
 
       final response = await dio.post(
         '$baseUrl${AppConstants.verifyEndpoint}',
-        data: formData,
+        data: requestBody,
       );
 
       return VerifyResponse.fromJson(response.data);
@@ -230,16 +231,16 @@ class AudioGuardApiClient {
 
   /// Analyze audio
   Future<AnalyzeResponse> analyze({
-    required String audioFilePath,
+    required String fileId,
   }) async {
     try {
-      final formData = FormData.fromMap({
-        'audio_file': await MultipartFile.fromFile(audioFilePath),
-      });
+      final requestBody = {
+        'file_id': fileId,
+      };
 
       final response = await dio.post(
         '$baseUrl${AppConstants.analyzeEndpoint}',
-        data: formData,
+        data: requestBody,
       );
 
       return AnalyzeResponse.fromJson(response.data);
@@ -359,6 +360,7 @@ class ApiService {
 
       return EncodingResult(
         encodedFilePath: audioFilePath,
+        fileId: response.fileId,
         processingTime: duration,
         mode: 'cloud',
         confidence: response.embeddingStrength,
@@ -373,14 +375,14 @@ class ApiService {
 
   /// Decode watermark from audio
   Future<DecodingResult> decode({
-    required String audioFilePath,
+    required String fileId,
     int? messageLength,
   }) async {
     try {
       final startTime = DateTime.now();
 
       final response = await _client.decode(
-        audioFilePath: audioFilePath,
+        fileId: fileId,
         messageLength: messageLength,
       ).timeout(AppConstants.fileUploadTimeout);
 
@@ -402,14 +404,14 @@ class ApiService {
 
   /// Verify watermark
   Future<VerifyResult> verify({
-    required String audioFilePath,
+    required String fileId,
     required String message,
   }) async {
     try {
       final startTime = DateTime.now();
 
       final response = await _client.verify(
-        audioFilePath: audioFilePath,
+        fileId: fileId,
         message: message,
       ).timeout(AppConstants.fileUploadTimeout);
 
@@ -429,13 +431,13 @@ class ApiService {
 
   /// Analyze audio for watermark presence
   Future<AnalysisResult> analyze({
-    required String audioFilePath,
+    required String fileId,
   }) async {
     try {
       final startTime = DateTime.now();
 
       final response = await _client.analyze(
-        audioFilePath: audioFilePath,
+        fileId: fileId,
       ).timeout(AppConstants.fileUploadTimeout);
 
       final duration = DateTime.now().difference(startTime);

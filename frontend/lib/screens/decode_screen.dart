@@ -370,12 +370,12 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.cloud_download),
                 label: const Text('Decode Watermark'),
-                onPressed: audioPath != null && !decoding.isProcessing
+                onPressed: !decoding.isProcessing
                     ? () {
                         final messageLength =
                             int.tryParse(_messageLengthController.text);
                         ref.read(decodingProvider.notifier).decode(
-                              audioFilePath: audioPath,
+                              fileId: null,
                               messageLength: messageLength,
                               mode: mode,
                             );

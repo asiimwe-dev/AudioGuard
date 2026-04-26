@@ -179,7 +179,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                               await ref
                                   .read(verificationProvider.notifier)
                                   .verify(
-                                    audioFilePath: audioPath,
+                                    fileId: null,
                                     expectedMessage:
                                         _messageController.text,
                                     mode: mode,
