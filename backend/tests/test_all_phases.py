@@ -100,13 +100,19 @@ class TestPhase3:
 
     def test_phase3_cnn_initialization(self):
         """Test Phase 3 CNN decoder initialization."""
-        decoder = CNNWatermarkDecoder(device="cpu")
-        assert decoder.model is not None
-        assert decoder.classical_decoder is not None
+        try:
+            decoder = CNNWatermarkDecoder(device="cpu")
+            assert decoder.model is not None
+            assert decoder.classical_decoder is not None
+        except ImportError as e:
+            pytest.skip(f"PyTorch not installed: {e}")
 
     def test_phase3_cnn_forward_pass(self):
         """Test CNN forward pass with dummy input."""
-        decoder = CNNWatermarkDecoder(device="cpu")
+        try:
+            decoder = CNNWatermarkDecoder(device="cpu")
+        except ImportError as e:
+            pytest.skip(f"PyTorch not installed: {e}")
 
         # Create dummy audio
         sample_rate = 44100

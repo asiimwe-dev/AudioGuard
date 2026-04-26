@@ -95,7 +95,7 @@ class TestEncoding:
         """Encoding should return 200."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "AUTHOR_001"}
         )
         assert response.status_code == 200
@@ -104,7 +104,7 @@ class TestEncoding:
         """Encoding response should have required fields."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "TEST"}
         )
         data = response.json()
@@ -120,7 +120,7 @@ class TestEncoding:
         """Encoding should accept custom parameters."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={
                 "message": "CUSTOM",
                 "amplitude_factor": 0.1,
@@ -137,7 +137,7 @@ class TestEncoding:
         """Encoding without message should fail."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={}
         )
         # Should fail validation
@@ -147,7 +147,7 @@ class TestEncoding:
         """Encoding with empty message should fail."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": ""}
         )
         assert response.status_code in [422, 400]
@@ -156,7 +156,7 @@ class TestEncoding:
         """Encoding with very long message should fail."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "X" * 500}
         )
         assert response.status_code in [422, 400]
@@ -165,7 +165,7 @@ class TestEncoding:
         """Invalid amplitude factor should fail validation."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={
                 "message": "TEST",
                 "amplitude_factor": 2.0  # Out of range
@@ -177,7 +177,7 @@ class TestEncoding:
         """Encoding should complete within reasonable time."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "SPEED_TEST"}
         )
         assert response.status_code == 200
@@ -211,7 +211,7 @@ class TestDecoding:
         # Encode
         encode_response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "ROUNDTRIP"}
         )
         assert encode_response.status_code == 200
@@ -234,7 +234,7 @@ class TestDecoding:
         # Encode first
         encode_response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "VALIDATE"}
         )
         file_id = encode_response.json()["file_id"]
@@ -278,7 +278,7 @@ class TestVerification:
         # Encode first
         encode_response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "VERIFY_ME"}
         )
         file_id = encode_response.json()["file_id"]
@@ -305,7 +305,7 @@ class TestDownload:
         # Encode
         encode_response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": "DOWNLOAD"}
         )
         file_id = encode_response.json()["file_id"]
@@ -348,7 +348,7 @@ class TestErrorHandling:
         """Invalid audio format should fail gracefully."""
         response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.txt", io.BytesIO(b"not audio"))},
+            files={"audio_file": ("test.txt", io.BytesIO(b"not audio"))},
             data={"message": "TEST"}
         )
         assert response.status_code in [400, 500]
@@ -372,7 +372,7 @@ class TestEndToEnd:
         # Encode
         encode_response = client.post(
             "/api/v1/encode",
-            files={"file": ("test.wav", io.BytesIO(sample_audio))},
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
             data={"message": message, "amplitude_factor": 0.05}
         )
         assert encode_response.status_code == 200
@@ -405,7 +405,7 @@ class TestEndToEnd:
         for i in range(3):
             response = client.post(
                 "/api/v1/encode",
-                files={"file": ("test.wav", io.BytesIO(sample_audio))},
+                files={"audio_file": ("test.wav", io.BytesIO(sample_audio))},
                 data={"message": f"MSG_{i}"}
             )
             assert response.status_code == 200

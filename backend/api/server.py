@@ -164,6 +164,23 @@ def create_app(debug: bool = False) -> FastAPI:
                     detail="Message must be 1-255 characters",
                 )
 
+            # Validate parameters
+            if not (0.01 <= amplitude_factor <= 1.0):
+                raise HTTPException(
+                    status_code=400,
+                    detail="amplitude_factor must be between 0.01 and 1.0",
+                )
+            if not (512 <= frame_size <= 4096):
+                raise HTTPException(
+                    status_code=400,
+                    detail="frame_size must be between 512 and 4096",
+                )
+            if not (1 <= bits_per_frame <= 8):
+                raise HTTPException(
+                    status_code=400,
+                    detail="bits_per_frame must be between 1 and 8",
+                )
+
             # Save uploaded file
             input_path = Path(temp_dir) / "input_audio"
             content = await audio_file.read()
@@ -226,17 +243,12 @@ def create_app(debug: bool = False) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Encoding failed: {str(e)}")
 
     @app.post("/api/v1/decode", response_model=DecodeResponse)
-    async def decode_watermark(
-        audio_file: UploadFile = File(...),
-        message_length: int = Form(None),
-        use_cnn: bool = Form(False),
-        confidence_threshold: float = Form(0.5),
-    ):
+    async def decode_watermark(request_data: DecodeRequest):
         """
-        Extract watermark from audio file.
+        Extract watermark from previously encoded audio file.
 
         **Parameters:**
-        - **audio_file**: Audio file to decode
+        - **file_id**: File ID from encoding response
         - **message_length**: Expected message length (optional, default tries 4-32)
         - **use_cnn**: Use CNN decoder for compressed audio (optional)
         - **confidence_threshold**: Minimum confidence to accept result (0-1)
@@ -247,25 +259,22 @@ def create_app(debug: bool = False) -> FastAPI:
         - **method**: Decoder method used (classical or cnn)
         - **snr_db**: Estimated signal-to-noise ratio
         """
+        file_id = request_data.file_id
+        message_length = getattr(request_data, 'message_length', None)
+        use_cnn = request_data.use_cnn
+        confidence_threshold = request_data.confidence_threshold
+        
         start_time = time.time()
         temp_dir = tempfile.mkdtemp()
 
         try:
-            # Read and save audio file
-            content = await audio_file.read()
-            try:
-                audio_data, sr = sf.read(io.BytesIO(content))
-            except Exception:
+            # Get audio from file_id
+            if file_id not in app_state["encoded_files"]:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Invalid audio format. Supported: WAV, MP3, FLAC, OGG",
+                    status_code=404,
+                    detail=f"File ID '{file_id}' not found",
                 )
-
-            # Save as WAV for processing
-            input_wav = Path(temp_dir) / "decode.wav"
-            sf.write(str(input_wav), audio_data, sr)
-
-            # Classical decoder - try with provided message_length or auto-detect
+            input_wav = app_state["encoded_files"][file_id]
             decoder = AudioGuardDecoder()
             message = None
             confidence = 0.0
@@ -362,38 +371,29 @@ def create_app(debug: bool = False) -> FastAPI:
             )
 
     @app.post("/api/v1/verify", response_model=VerifyResponse)
-    async def verify_watermark(
-        audio_file: UploadFile = File(...),
-        message: str = Form(None),
-    ):
+    async def verify_watermark(request_data: VerifyRequest):
         """
         Check if audio contains watermark (binary classification).
 
         **Parameters:**
-        - **audio_file**: Audio file to verify
-        - **message**: Optional message to verify against specific watermark
+        - **file_id**: File ID from encoding response
 
         **Returns:**
         - **watermark_detected**: True if watermark is present
         - **confidence**: Detection confidence (0-1)
         """
+        file_id = request_data.file_id
         start_time = time.time()
         temp_dir = tempfile.mkdtemp()
 
         try:
-            # Read and save audio file
-            content = await audio_file.read()
-            try:
-                audio_data, sr = sf.read(io.BytesIO(content))
-            except Exception:
+            # Get audio from file_id
+            if file_id not in app_state["encoded_files"]:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Invalid audio format. Supported: WAV, MP3, FLAC, OGG",
+                    status_code=404,
+                    detail=f"File ID '{file_id}' not found",
                 )
-
-            # Save as WAV for processing
-            input_wav = Path(temp_dir) / "verify.wav"
-            sf.write(str(input_wav), audio_data, sr)
+            input_wav = app_state["encoded_files"][file_id]
 
             # Use CNN if available, else classical
             watermark_detected = False
@@ -466,35 +466,30 @@ def create_app(debug: bool = False) -> FastAPI:
             raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
 
     @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
-    async def analyze_audio(audio_file: UploadFile = File(...)):
+    async def analyze_audio(request_data: AnalyzeRequest):
         """
         Analyze audio for watermark presence and signal strength.
 
         **Parameters:**
-        - **audio_file**: Audio file to analyze
+        - **file_id**: File ID from encoding response
 
         **Returns:**
         - **watermark_present**: Whether watermark is detected
         - **signal_strength**: Signal strength (0-1)
         - **spectral_info**: Spectral analysis information
         """
+        file_id = request_data.file_id
         start_time = time.time()
         temp_dir = tempfile.mkdtemp()
 
         try:
-            # Save and read audio file
-            content = await audio_file.read()
-            try:
-                audio_data, sr = sf.read(io.BytesIO(content))
-            except Exception:
+            # Get audio from file_id
+            if file_id not in app_state["encoded_files"]:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Invalid audio format. Supported: WAV, MP3, FLAC, OGG",
+                    status_code=404,
+                    detail=f"File ID '{file_id}' not found",
                 )
-
-            # Save as WAV for processing
-            input_wav = Path(temp_dir) / "analyze.wav"
-            sf.write(str(input_wav), audio_data, sr)
+            input_wav = app_state["encoded_files"][file_id]
 
             # Analyze with decoder - try different message lengths
             decoder = AudioGuardDecoder()
