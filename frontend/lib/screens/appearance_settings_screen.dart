@@ -62,7 +62,9 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                 ),
                 Text(
                   'Adjust the slider to scale application text size. This changes will apply immediately across all screens.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],

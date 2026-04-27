@@ -86,7 +86,9 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
                                       audioPath,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .bodySmall,
+                                          .bodySmall?.copyWith(
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -267,7 +269,9 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Processing time: ${result.processingTime.inMilliseconds}ms',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

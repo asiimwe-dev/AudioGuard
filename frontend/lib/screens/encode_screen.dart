@@ -106,7 +106,12 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
 
             // Settings Expansion
             ExpansionTile(
-              title: const Text('Advanced Encoding Settings'),
+              title: Text('Advanced Encoding Settings',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -125,7 +130,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Processing Mode:'),
-                          Text(mode.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(mode.label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
@@ -189,7 +194,9 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
           Expanded(
             child: Text(
               'Sign your work with a spectral digital signature that survives conversion and noise.',
-              style: theme.textTheme.bodySmall,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -224,7 +231,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                   Expanded(
                     child: Text(
                       audioPath.split('/').last,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -271,17 +278,25 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Row(
+                         Row(
               children: [
                 Icon(Icons.verified, color: Colors.green),
                 const SizedBox(width: 12),
-                Text('SUCCESSFULLY SIGNED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                Text(
+                  'SUCCESSFULLY SIGNED',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Text(
               'Your audio has been watermarked. The signature is now part of the spectral data.',
-              style: theme.textTheme.bodySmall,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 20),
             Row(

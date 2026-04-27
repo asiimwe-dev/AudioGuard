@@ -47,7 +47,7 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
           content: Text(isHealthy
               ? 'Connection successful! Backend is responding.'
               : 'Connection failed. Please check the URL and your network.'),
-          backgroundColor: isHealthy ? Colors.green : Colors.red,
+          backgroundColor: isHealthy ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -56,7 +56,7 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error testing connection: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -161,7 +161,9 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'The default cloud URL is optimized for production. Only change this for local development or private server use.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -285,7 +287,9 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'JWT token for authenticated API requests.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -344,7 +348,9 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 'Verify your backend is accessible',
-                                style: Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -402,7 +408,9 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                       '• AudioGuard engine installed\n'
                       '• Access to port 8000\n'
                       '• Network connectivity from device',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),

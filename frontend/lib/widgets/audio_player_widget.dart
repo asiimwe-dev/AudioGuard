@@ -54,7 +54,9 @@ class AudioPlayerWidget extends ConsumerWidget {
               children: [
                 Text(
                   player.formatDuration(playerState.position),
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -75,7 +77,9 @@ class AudioPlayerWidget extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text(
                   player.formatDuration(playerState.duration),
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -121,20 +125,19 @@ class AudioPlayerWidget extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red[50],
+                    color: Theme.of(context).colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.red),
+                    border: Border.all(color: Theme.of(context).colorScheme.error),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                      Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error, size: 16),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           playerState.error!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.error,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -210,13 +213,17 @@ class CompactAudioPlayer extends ConsumerWidget {
                 if (label != null)
                   Text(
                     label!,
-                    style: Theme.of(context).textTheme.labelSmall,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 Text(
                   '${player.formatDuration(playerState.position)} / ${player.formatDuration(playerState.duration)}',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

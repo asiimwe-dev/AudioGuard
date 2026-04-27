@@ -59,7 +59,9 @@ class _WaveformLoadingIndicatorState extends State<WaveformLoadingIndicator>
           ),
         ),
         const SizedBox(height: 12),
-        Text(widget.label, style: Theme.of(context).textTheme.bodySmall),
+        Text(widget.label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        )),
       ],
     );
   }

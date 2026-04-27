@@ -151,7 +151,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           _CertificateField('Timestamp', now),
           _CertificateField('Signature Hash', '0x${result.id.substring(0, 8).toUpperCase()}...'),
           const Divider(),
-          Text('Digital Identity verified by AudioGuard Core.', style: theme.textTheme.bodySmall),
+          Text('Digital Identity verified by AudioGuard Core.', style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          )),
         ],
       ),
     );
@@ -170,7 +172,9 @@ class _CertificateField extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          )),
           Text(value, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontFamily: 'RobotoMono', fontWeight: FontWeight.bold)),
         ],
       ),

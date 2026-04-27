@@ -20,15 +20,15 @@ class GlassyBottomNavBar extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         border: Border(
           top: BorderSide(
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             width: 0.5,
           ),
         ),
@@ -37,7 +37,7 @@ class GlassyBottomNavBar extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -55,7 +55,7 @@ class GlassyBottomNavBar extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: isSelected
@@ -63,7 +63,7 @@ class GlassyBottomNavBar extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .primary
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                               width: 1,
                             )
                           : null,

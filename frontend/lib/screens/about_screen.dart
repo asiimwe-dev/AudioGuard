@@ -22,8 +22,8 @@ class AboutScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -147,7 +147,9 @@ class AboutScreen extends StatelessWidget {
                           '• url_launcher (BSD 3-Clause License)\n'
                           '• permission_handler (MIT License)\n\n'
                           'For full licenses, visit github.com/asiimwe-dev/AudioGuard',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],

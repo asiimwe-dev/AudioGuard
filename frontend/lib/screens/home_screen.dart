@@ -23,7 +23,7 @@ class HomeScreen extends ConsumerWidget {
           children: [
             const Text('AudioGuard'),
             Text(
-              'Acoustic Steganography',
+              'Audio Protection & Verification',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     letterSpacing: 1.1,
@@ -75,6 +75,7 @@ class HomeScreen extends ConsumerWidget {
               'Watermark Operations',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: AppSpacing.m),
@@ -89,6 +90,7 @@ class HomeScreen extends ConsumerWidget {
                   'Recent Operations',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if (ref.watch(historyProvider).isNotEmpty)
@@ -141,8 +143,7 @@ class _ModeCard extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               currentMode.label,
-              style: const TextStyle(
-                fontSize: 16,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -150,7 +151,7 @@ class _ModeCard extends ConsumerWidget {
             Text(
               _getModeDescription(currentMode),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
             const SizedBox(height: 16),
@@ -335,7 +336,9 @@ class _QuickStatsCard extends StatelessWidget {
                     children: [
                       Text(
                         'Success Ratio',
-                        style: theme.textTheme.bodySmall,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       Text(
                         '${stats.successfulOperations} Pass / ${stats.failedOperations} Fail',
@@ -434,6 +437,7 @@ class _MiniStat extends StatelessWidget {
           '$value $label',
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -541,15 +545,16 @@ class _ActionButton extends ConsumerWidget {
               const SizedBox(height: 12),
               Text(
                 action.label,
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 action.description,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -575,13 +580,13 @@ class _RecentOperations extends ConsumerWidget {
               Icon(
                 Icons.history,
                 size: 48,
-                color: Colors.grey[400],
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(127),
               ),
               const SizedBox(height: 12),
               Text(
                 'No operations yet',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
             ],
@@ -605,7 +610,7 @@ class _RecentOperations extends ConsumerWidget {
             ),
             child: Icon(
               _getOperationIcon(entry.operationType),
-              color: entry.success ? Colors.green : Colors.red,
+              color: entry.success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
               size: 20,
             ),
           ),
@@ -613,16 +618,22 @@ class _RecentOperations extends ConsumerWidget {
             '${entry.operationType[0].toUpperCase()}${entry.operationType.substring(1)}: ${entry.filename}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
           ),
           subtitle: Text(
             '${entry.mode} • ${_formatDateTime(entry.timestamp)}',
-            style: const TextStyle(fontSize: 12),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           trailing: entry.confidence != null 
             ? Text(
                 '${(entry.confidence! * 100).toStringAsFixed(0)}%',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               )
             : null,
           onTap: () {

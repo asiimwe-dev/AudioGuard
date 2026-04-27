@@ -61,9 +61,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'This name will be used as the default watermark message when encoding new audio.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -166,8 +169,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.delete_outline, color: Colors.red),
-                  title: const Text('Clear All Data', style: TextStyle(color: Colors.red)),
+                  leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                  title: Text(
+                    'Clear All Data',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
                   onTap: () => _showClearDataDialog(context, ref),
                 ),
               ],
@@ -229,7 +235,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () async {
               await ref.read(storageServiceProvider).clearAll();
               ref.read(historyProvider.notifier).clearHistory();
@@ -240,7 +249,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 );
               }
             },
-            child: const Text('Clear Everything', style: TextStyle(color: Colors.white)),
+            child: const Text('Clear Everything'),
           ),
         ],
       ),

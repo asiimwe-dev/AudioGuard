@@ -161,7 +161,17 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
 
   Widget _buildResultCard(DecodingResult result) {
     if (!result.success) {
-      return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('No watermark detected.')));
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'No watermark detected.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
     }
     return Card(
       color: Theme.of(context).colorScheme.tertiaryContainer,
@@ -170,7 +180,12 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Watermark Integrity Report', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              'Watermark Integrity Report',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const Divider(),
             _ResultRow(label: 'Extracted Message', value: result.message ?? 'N/A'),
             _ResultRow(label: 'Confidence', value: '${(result.confidence * 100).toStringAsFixed(1)}%'),
@@ -210,8 +225,18 @@ class _ResultRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(value),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

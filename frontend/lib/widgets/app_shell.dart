@@ -80,7 +80,7 @@ class AppShell extends ConsumerWidget {
         // On home tab with dashboard, show exit confirmation
         final shouldExit = await showDialog<bool>(
           context: context,
-          barrierColor: Colors.black.withOpacity(0.3),
+          barrierColor: Colors.black.withValues(alpha: 0.3),
           builder: (context) => AlertDialog(
             title: const Text('Exit AudioGuard?'),
             content: const Text('Are you sure you want to exit the app?'),
