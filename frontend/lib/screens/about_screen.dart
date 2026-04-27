@@ -47,7 +47,10 @@ class AboutScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   Text(
                     'AudioGuard',
-                    style: Theme.of(context).textTheme.displayMedium,
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),

@@ -193,7 +193,7 @@ class _ModeCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Processing Mode'),
+        title: Text('Select Processing Mode', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: WatermarkMode.values.map((mode) {

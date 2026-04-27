@@ -53,7 +53,14 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     final authorIdentity = ref.watch(userIdentityProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Authenticity'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Verify Authenticity'),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.dashboard,
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

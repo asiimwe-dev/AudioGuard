@@ -88,12 +88,14 @@ def create_app(debug: bool = False) -> FastAPI:
 
     # Add middleware
     app.add_middleware(GZipMiddleware, minimum_size=1000)
+    # Configure CORS based on environment
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(",")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     @app.middleware("http")

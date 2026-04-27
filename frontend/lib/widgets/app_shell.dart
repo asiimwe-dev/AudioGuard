@@ -82,8 +82,19 @@ class AppShell extends ConsumerWidget {
           context: context,
           barrierColor: Colors.black.withValues(alpha: 0.3),
           builder: (context) => AlertDialog(
-            title: const Text('Exit AudioGuard?'),
-            content: const Text('Are you sure you want to exit the app?'),
+            title: Text(
+              'Exit AudioGuard?',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Are you sure you want to exit the app?',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),

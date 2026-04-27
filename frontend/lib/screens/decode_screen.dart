@@ -66,7 +66,7 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Decode Watermark'),
+        title: Text('Decode Watermark', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -89,6 +89,7 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
             TextField(
               controller: _messageLengthController,
               keyboardType: TextInputType.number,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: const InputDecoration(
                 labelText: 'Expected Message Length (Optional)',
                 hintText: 'e.g. 14',

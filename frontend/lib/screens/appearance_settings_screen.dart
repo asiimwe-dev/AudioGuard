@@ -85,7 +85,10 @@ class AppearanceSettingsScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Headline Preview',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(

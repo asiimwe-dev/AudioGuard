@@ -71,7 +71,7 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Backend URL?'),
+        title: Text('Edit Backend URL?', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         content: const Text(
           'Changing the backend URL to a custom or local address may affect application stability and security. Are you sure you want to proceed?',
         ),
@@ -113,7 +113,7 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('API Configuration'),
+        title: Text('API Configuration', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -184,7 +184,7 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                             showDialog(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text('Backend URL Format'),
+                                title: Text('Backend URL Format', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment:
@@ -384,26 +384,24 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Backend Info
+            // Backend Info - Collapsible
             Card(
               color: Theme.of(context).colorScheme.surface,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: ExpansionTile(
+                title: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.info, color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Backend Requirements',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                    Icon(Icons.info, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 12),
                     Text(
+                      'Backend Requirements',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Text(
                       '• Python 3.11+ with FastAPI\n'
                       '• AudioGuard engine installed\n'
                       '• Access to port 8000\n'
@@ -412,8 +410,8 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],

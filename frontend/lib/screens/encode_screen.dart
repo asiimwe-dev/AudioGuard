@@ -64,7 +64,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Encode Watermark'),
+        title: Text('Encode Watermark', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -94,6 +94,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _messageController,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: 'e.g., AUTHOR_ID_2026',
                 helperText: 'This message will be invisibly woven into the audio.',
@@ -120,6 +121,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                       TextField(
                         controller: _amplitudeController,
                         keyboardType: TextInputType.number,
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         decoration: const InputDecoration(
                           labelText: 'Amplitude Factor',
                           helperText: 'Higher = More robust but more audible (0.01 - 0.1)',
@@ -129,7 +131,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Processing Mode:'),
+                          Text('Processing Mode:', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                           Text(mode.label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
                         ],
                       ),
@@ -212,13 +214,13 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Input Audio', style: theme.textTheme.labelLarge),
+            Text('Input Audio', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurface)),
             const SizedBox(height: 12),
             if (audioPath == null)
               OutlinedButton.icon(
                 onPressed: _pickAudioFile,
                 icon: const Icon(Icons.audio_file),
-                label: const Text('Choose Audio File'),
+                label: Text('Choose Audio File', style: TextStyle(color: Theme.of(context).colorScheme.onPrimary)),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                 ),
