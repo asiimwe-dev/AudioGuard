@@ -79,7 +79,7 @@ For detailed instructions, see the **[Quick Start Guide](docs/01-quick-start.md)
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for our guidelines and Code of Conduct.
+We welcome contributions! Please see **[CONTRIBUTING.md](docs/08-contributing.md)** for our guidelines and Code of Conduct.
 
 ---
 
