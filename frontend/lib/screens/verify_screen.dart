@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/ui_provider.dart';
 import '../models/watermark_model.dart';
-import '../utils/constants.dart';
 import '../widgets/audio_player_widget.dart';
+import '../widgets/waveform_loading_indicator.dart';
 
 /// Verification screen - verify watermark authenticity
 class VerifyScreen extends ConsumerStatefulWidget {
@@ -22,7 +24,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     super.initState();
     _messageController = TextEditingController();
 
-    // Clear selection when entering verify screen as requested
+    // Clear selection when entering verify screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(selectedAudioFileProvider.notifier).state = null;
       ref.read(verificationProvider.notifier).reset();
@@ -48,257 +50,129 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     final audioPath = ref.watch(selectedAudioFileProvider);
     final verifyState = ref.watch(verificationProvider);
     final mode = ref.watch(watermarkModeProvider);
+    final authorIdentity = ref.watch(userIdentityProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verify Watermark'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            ref.read(currentHomeScreenProvider.notifier).state =
-                HomeSubScreen.dashboard;
-          },
-        ),
-        elevation: 0,
-      ),
-      body: audioPath == null
-          ? _buildEmptyState(context)
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Audio file card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.audio_file,
-                                  color: Theme.of(context).colorScheme.primary),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      audioPath.split('/').last,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      audioPath,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: _pickAudioFile,
-                            child: const Text('Change File'),
-                          ),
-                        ],
+      appBar: AppBar(title: const Text('Verify Authenticity'), elevation: 0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (audioPath != null) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.audio_file_rounded),
+                        title: Text(audioPath.split('/').last, overflow: TextOverflow.ellipsis),
+                        trailing: TextButton(onPressed: _pickAudioFile, child: const Text('Change')),
                       ),
-                    ),
+                      AudioPlayerWidget(filePath: audioPath, fileName: audioPath.split('/').last),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  // Audio Player Widget
-                  AudioPlayerWidget(
-                    filePath: audioPath,
-                    fileName: audioPath.split('/').last,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Expected message input
-                  Text(
-                    'Expected Watermark Message',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter the watermark message to verify',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      prefixIcon: const Icon(Icons.message),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Mode selector
-                  Text(
-                    'Processing Mode',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  SegmentedButton<WatermarkMode>(
-                    segments: WatermarkMode.values
-                        .map(
-                          (m) => ButtonSegment(
-                            value: m,
-                            label: Text(m.label),
-                          ),
-                        )
-                        .toList(),
-                    selected: {mode},
-                    onSelectionChanged: (selection) {
-                      ref.read(watermarkModeProvider.notifier).state =
-                          selection.first;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Verify button
-                  if (verifyState.isProcessing)
-                    Column(
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        LinearProgressIndicator(
-                          value: verifyState.progress,
-                        ),
-                        const SizedBox(height: 8),
-                        Text('Verifying... ${(verifyState.progress * 100).toStringAsFixed(0)}%'),
-                      ],
-                    )
-                  else
-                    ElevatedButton(
-                      onPressed: _messageController.text.isEmpty
-                          ? null
-                          : () async {
-                              await ref
-                                  .read(verificationProvider.notifier)
-                                  .verify(
-                                    fileId: null,
-                                    expectedMessage:
-                                        _messageController.text,
-                                    mode: mode,
-                                  );
-                            },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Verify Watermark'),
-                    ),
-                  const SizedBox(height: 24),
-
-                  // Result display
-                  verifyState.result.when(
-                    data: (result) => _buildResultCard(context, result),
-                    loading: () => const CircularProgressIndicator(),
-                    error: (error, _) => Card(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.error,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .error),
-                                const SizedBox(width: 12),
-                                const Text('Verification Failed'),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(error is ProcessingError && error.details != null
-                                ? error.details!
-                                : error.toString()),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
+              const SizedBox(height: 16),
+            ],
+
+            if (audioPath != null) ...[
+              TextField(
+                controller: _messageController,
+                decoration: const InputDecoration(
+                  labelText: 'Expected Message',
+                  prefixIcon: Icon(Icons.edit_note),
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.read(verificationProvider.notifier).verify(
+                  fileId: null,
+                  expectedMessage: _messageController.text,
+                  mode: mode,
+                ),
+                child: const Text('VERIFY AUTHENTICITY'),
+              ),
+            ] else
+              OutlinedButton.icon(
+                onPressed: _pickAudioFile,
+                icon: const Icon(Icons.audio_file),
+                label: const Text('Select Audio to Verify'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              ),
+
+            const SizedBox(height: 24),
+            
+            if (verifyState.isProcessing)
+              const Center(child: WaveformLoadingIndicator(label: 'Verifying Integrity...')),
+
+            verifyState.result.when(
+              data: (result) => _buildCertificate(result, authorIdentity),
+              error: (err, _) => Text('Error: $err', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              loading: () => const SizedBox.shrink(),
             ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
+  Widget _buildCertificate(VerifyResult result, String author) {
+    final theme = Theme.of(context);
+    final isValid = result.isValid;
+    final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isValid ? theme.colorScheme.tertiary : theme.colorScheme.error, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: isValid ? theme.colorScheme.tertiary.withValues(alpha: 0.2) : theme.colorScheme.error.withValues(alpha: 0.2),
+            blurRadius: 20,
+            spreadRadius: 5,
+          )
+        ],
+      ),
+      padding: const EdgeInsets.all(24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.audio_file,
-            size: 64,
-            color: Theme.of(context).colorScheme.outline,
-          ),
+          Icon(isValid ? Icons.verified_rounded : Icons.warning_amber_rounded, size: 64, color: isValid ? theme.colorScheme.tertiary : theme.colorScheme.error),
+          Text(isValid ? 'AUTHENTIC' : 'TAMPERED', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          Text(
-            'No audio file selected',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            onPressed: _pickAudioFile,
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Select Audio File'),
-          ),
+          const Divider(),
+          _CertificateField('Confidence Score', '${(result.confidence * 100).toStringAsFixed(1)}%'),
+          _CertificateField('Verified By', author),
+          _CertificateField('Timestamp', now),
+          _CertificateField('Signature Hash', '0x${result.id.substring(0, 8).toUpperCase()}...'),
+          const Divider(),
+          Text('Digital Identity verified by AudioGuard Core.', style: theme.textTheme.bodySmall),
         ],
       ),
     );
   }
+}
 
-  Widget _buildResultCard(BuildContext context, VerifyResult result) {
-    final isValid = result.isValid;
-    return Card(
-      color: isValid
-          ? Theme.of(context).colorScheme.tertiaryContainer
-          : Theme.of(context).colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isValid ? Icons.check_circle : Icons.cancel,
-                  color: isValid
-                      ? Theme.of(context).colorScheme.tertiary
-                      : Theme.of(context).colorScheme.error,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  isValid ? 'Watermark Valid' : 'Watermark Invalid',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Confidence: ${(result.confidence * 100).toStringAsFixed(1)}%',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Mode: ${result.mode}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
+class _CertificateField extends StatelessWidget {
+  final String label;
+  final String value;
+  const _CertificateField(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Text(value, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontFamily: 'RobotoMono', fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

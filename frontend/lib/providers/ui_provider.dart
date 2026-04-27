@@ -198,6 +198,31 @@ final appearanceProvider = StateNotifierProvider<AppearanceNotifier, AppearanceS
   return AppearanceNotifier(storage);
 });
 
+// ===== User Identity =====
+
+class UserIdentityNotifier extends StateNotifier<String> {
+  final StorageService _storage;
+
+  UserIdentityNotifier(this._storage) : super('Anonymous') {
+    _loadAuthorName();
+  }
+
+  Future<void> _loadAuthorName() async {
+    final name = await _storage.getString(AppConstants.storageKeyAuthorName);
+    if (name != null) state = name;
+  }
+
+  Future<void> setAuthorName(String name) async {
+    state = name;
+    await _storage.setString(AppConstants.storageKeyAuthorName, name);
+  }
+}
+
+final userIdentityProvider = StateNotifierProvider<UserIdentityNotifier, String>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  return UserIdentityNotifier(storage);
+});
+
 // ===== Screen Navigation =====
 
 enum CurrentScreen {

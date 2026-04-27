@@ -74,11 +74,17 @@ class OperationStats {
   final int totalOperations;
   final double successRate;
   final double averageConfidence;
+  final Map<String, int> typeBreakdown;
+  final int successfulOperations;
+  final int failedOperations;
 
   OperationStats({
     this.totalOperations = 0,
     this.successRate = 0.0,
     this.averageConfidence = 0.0,
+    this.typeBreakdown = const {},
+    this.successfulOperations = 0,
+    this.failedOperations = 0,
   });
 }
 
@@ -89,12 +95,21 @@ final statsProvider = Provider<OperationStats>((ref) {
   
   final total = history.length;
   final successful = history.where((e) => e.success).length;
-  final avgConf = history.map((e) => e.confidence ?? 0.0).fold(0.0, (a, b) => a + b) / total;
+  final failed = total - successful;
+  final avgConf = history.isEmpty ? 0.0 : history.map((e) => e.confidence ?? 0.0).fold(0.0, (a, b) => a + b) / total;
+
+  final Map<String, int> breakdown = {};
+  for (final entry in history) {
+    breakdown[entry.operationType] = (breakdown[entry.operationType] ?? 0) + 1;
+  }
       
   return OperationStats(
     totalOperations: total,
     successRate: successful / total,
     averageConfidence: avgConf,
+    typeBreakdown: breakdown,
+    successfulOperations: successful,
+    failedOperations: failed,
   );
 });
 

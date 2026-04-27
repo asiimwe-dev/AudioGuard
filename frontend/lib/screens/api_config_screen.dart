@@ -17,6 +17,7 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
   late final TextEditingController _apiUrlController;
   late final TextEditingController _authTokenController;
   bool _isTestingConnection = false;
+  bool _isUrlEditable = false;
 
   @override
   void initState() {
@@ -66,6 +67,38 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
     }
   }
 
+  Future<void> _showEditConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Backend URL?'),
+        content: const Text(
+          'Changing the backend URL to a custom or local address may affect application stability and security. Are you sure you want to proceed?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
+              foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _isUrlEditable = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -95,20 +128,50 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Backend URL',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Backend URL',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        if (!_isUrlEditable)
+                          TextButton.icon(
+                            onPressed: _showEditConfirmation,
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: const Text('Edit Custom'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          )
+                        else
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _isUrlEditable = false;
+                                _apiUrlController.text = AppConstants.defaultApiBaseUrl;
+                                ref.read(settingsProvider.notifier).setApiBaseUrl(AppConstants.defaultApiBaseUrl);
+                              });
+                            },
+                            icon: const Icon(Icons.undo),
+                            tooltip: 'Reset to Cloud Default',
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Configure your backend server address for watermarking operations.',
+                      'The default cloud URL is optimized for production. Only change this for local development or private server use.',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _apiUrlController,
+                      readOnly: !_isUrlEditable,
+                      style: _isUrlEditable ? null : TextStyle(color: Theme.of(context).disabledColor),
                       decoration: InputDecoration(
                         hintText: AppConstants.defaultApiBaseUrl,
+                        filled: !_isUrlEditable,
+                        fillColor: _isUrlEditable ? null : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -131,32 +194,56 @@ class _ApiConfigScreenState extends ConsumerState<ApiConfigScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     const Text('Local (device on same network):'),
-                                    Text(
-                                      'http://192.168.1.100:8000',
-                                      style: TextStyle(
-                                        fontFamily: 'monospace',
-                                        fontSize: 12,
-                                        backgroundColor: Colors.grey[200],
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'http://192.168.1.100:8000',
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text('Emulator (local machine):'),
-                                    Text(
-                                      'http://10.0.2.2:8000',
-                                      style: TextStyle(
-                                        fontFamily: 'monospace',
-                                        fontSize: 12,
-                                        backgroundColor: Colors.grey[200],
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'http://10.0.2.2:8000',
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text('Production (cloud):'),
-                                    Text(
-                                      'https://api.audioguard.example.com',
-                                      style: TextStyle(
-                                        fontFamily: 'monospace',
-                                        fontSize: 12,
-                                        backgroundColor: Colors.grey[200],
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'https://api.audioguard.io',
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],

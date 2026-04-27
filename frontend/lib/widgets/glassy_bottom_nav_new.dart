@@ -15,55 +15,86 @@ class GlassyBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(28),
-        topRight: Radius.circular(28),
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withValues(alpha: 0.15),
-                Colors.white.withValues(alpha: 0.05),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 0.5,
-              ),
-            ),
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode 
+                ? Colors.black.withValues(alpha: 0.4)
+                : Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            spreadRadius: -2,
+            offset: const Offset(0, 8),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(
-                context,
-                NavigationTab.home,
-                Icons.home_rounded,
+          if (isDarkMode)
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 0),
+            ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDarkMode
+                    ? [
+                        theme.colorScheme.surface.withValues(alpha: 0.4),
+                        theme.colorScheme.surface.withValues(alpha: 0.2),
+                        theme.colorScheme.surface.withValues(alpha: 0.4),
+                      ]
+                    : [
+                        theme.colorScheme.surface.withValues(alpha: 0.8),
+                        theme.colorScheme.surface.withValues(alpha: 0.5),
+                        theme.colorScheme.surface.withValues(alpha: 0.7),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              _buildNavItem(
-                context,
-                NavigationTab.settings,
-                Icons.settings_rounded,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: isDarkMode
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : theme.colorScheme.primary.withValues(alpha: 0.15),
+                width: 1.2,
               ),
-              _buildNavItem(
-                context,
-                NavigationTab.apiConfig,
-                Icons.cloud_rounded,
-              ),
-              _buildNavItem(
-                context,
-                NavigationTab.about,
-                Icons.info_rounded,
-              ),
-            ],
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(
+                  context,
+                  NavigationTab.home,
+                  Icons.home_rounded,
+                ),
+                _buildNavItem(
+                  context,
+                  NavigationTab.settings,
+                  Icons.settings_rounded,
+                ),
+                _buildNavItem(
+                  context,
+                  NavigationTab.apiConfig,
+                  Icons.cloud_rounded,
+                ),
+                _buildNavItem(
+                  context,
+                  NavigationTab.about,
+                  Icons.info_rounded,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -75,26 +106,34 @@ class GlassyBottomNav extends StatelessWidget {
     NavigationTab tab,
     IconData icon,
   ) {
+    final theme = Theme.of(context);
     final isSelected = currentTab == tab;
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () => onTabChanged(tab),
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutQuint,
         padding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 10,
+          vertical: 12,
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primary
+              ? theme.colorScheme.primary.withValues(alpha: isDarkMode ? 0.85 : 1.0)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? Border.all(
-                  color: Theme.of(context).colorScheme.primary,
-                  width: 2,
-                )
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(
+                        alpha: isDarkMode ? 0.3 : 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ]
               : null,
         ),
         child: Column(
@@ -103,19 +142,20 @@ class GlassyBottomNav extends StatelessWidget {
             Icon(
               icon,
               color: isSelected
-                  ? Colors.black
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               tab.label,
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 10,
+                letterSpacing: 0.2,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected
-                    ? Colors.black
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
               ),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
@@ -81,304 +82,32 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Audio File Selector
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.music_note,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Audio File',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (audioPath == null)
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.folder_open),
-                        label: const Text('Select Audio File'),
-                        onPressed: _pickAudioFile,
-                      )
-                    else ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                audioPath.split('/').last,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, size: 20),
-                              onPressed: _pickAudioFile,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Audio Player Widget
-                      AudioPlayerWidget(
-                        filePath: audioPath,
-                        fileName: audioPath.split('/').last,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            _buildFileSelector(audioPath),
             const SizedBox(height: 24),
 
             // Message Length (Optional)
-            Text(
-              'Message Length (Optional)',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
             TextField(
               controller: _messageLengthController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                hintText: 'Leave empty for auto-detection (slower)',
-                helperText: 'Hint: Knowing the length speeds up decoding',
+                labelText: 'Expected Message Length (Optional)',
+                hintText: 'e.g. 14',
+                prefixIcon: Icon(Icons.numbers),
+                border: OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Mode Selector
-            Text(
-              'Processing Mode',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            SegmentedButton<WatermarkMode>(
-              segments: WatermarkMode.values
-                  .map(
-                    (m) => ButtonSegment(
-                      value: m,
-                      label: Text(m.label),
-                    ),
-                  )
-                  .toList(),
-              selected: {mode},
-              onSelectionChanged: (selected) {
-                ref.read(watermarkModeProvider.notifier).state = selected.first;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Decoding Result
-            if (decoding.isProcessing) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Decoding in progress...',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: decoding.progress,
-                          minHeight: 8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-            decoding.result.when(
-              data: (result) => Card(
-                color: result.success ? Colors.green[50] : Colors.orange[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            result.success
-                                ? Icons.check_circle
-                                : Icons.cancel,
-                            color: result.success ? Colors.green : Colors.red,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              result.success
-                                  ? 'Watermark Extracted'
-                                  : 'No watermark detected',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: result.success
-                                    ? Colors.green[900]
-                                    : Colors.orange[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (result.message != null) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green[50],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Extracted Message:',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Colors.grey[700],
-                                    ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                result.message!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      _ResultRow(
-                        label: 'Confidence',
-                        value:
-                            '${(result.confidence * 100).toStringAsFixed(1)}%',
-                      ),
-                      _ResultRow(
-                        label: 'Processing Time',
-                        value:
-                            '${result.processingTime.inMilliseconds}ms',
-                      ),
-                      if (result.suggestions.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          'Suggestions:',
-                          style:
-                              Theme.of(context).textTheme.bodySmall,
-                        ),
-                        ...result.suggestions.map((suggestion) {
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 4),
-                            child: Text(
-                              '• $suggestion',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Colors.grey[600],
-                                  ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              error: (error, _) => Card(
-                color: Colors.red[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Decoding Failed',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Colors.red[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _getErrorMessage(error),
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Try Again'),
-                          onPressed: () {
-                            ref.read(decodingProvider.notifier).reset();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              loading: () => const SizedBox.shrink(),
             ),
             const SizedBox(height: 24),
 
             // Decode Button
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.cloud_download),
-                label: const Text('Decode Watermark'),
-                onPressed: !decoding.isProcessing
-                    ? () {
+                icon: const Icon(Icons.lock_open),
+                label: const Text('EXTRACT WATERMARK'),
+                onPressed: audioPath == null || decoding.isProcessing
+                    ? null
+                    : () {
                         final messageLength =
                             int.tryParse(_messageLengthController.text);
                         ref.read(decodingProvider.notifier).decode(
@@ -386,12 +115,84 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                               messageLength: messageLength,
                               mode: mode,
                             );
-                      }
-                    : null,
+                      },
               ),
+            ),
+            const SizedBox(height: 24),
+
+            // Decoding Result
+            decoding.result.when(
+              data: (result) => _buildResultCard(result),
+              error: (error, _) => _buildErrorCard(error),
+              loading: () => decoding.isProcessing ? const Center(child: CircularProgressIndicator()) : const SizedBox.shrink(),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFileSelector(String? audioPath) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            if (audioPath == null)
+              OutlinedButton.icon(
+                onPressed: _pickAudioFile,
+                icon: const Icon(Icons.audio_file),
+                label: const Text('Select Audio File'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.check_circle, color: Colors.green),
+                title: Text(audioPath.split('/').last, overflow: TextOverflow.ellipsis),
+                trailing: TextButton(onPressed: _pickAudioFile, child: const Text('Change')),
+              ),
+              AudioPlayerWidget(filePath: audioPath, fileName: audioPath.split('/').last),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultCard(DecodingResult result) {
+    if (!result.success) {
+      return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('No watermark detected.')));
+    }
+    return Card(
+      color: Theme.of(context).colorScheme.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Watermark Integrity Report', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Divider(),
+            _ResultRow(label: 'Extracted Message', value: result.message ?? 'N/A'),
+            _ResultRow(label: 'Confidence', value: '${(result.confidence * 100).toStringAsFixed(1)}%'),
+            _ResultRow(label: 'Method', value: result.mode),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () => Share.share('Extracted Watermark: ${result.message} (Confidence: ${result.confidence})'),
+              icon: const Icon(Icons.share),
+              label: const Text('Share Result'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(Object error) {
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Error: ${_getErrorMessage(error)}', style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
       ),
     );
   }
@@ -400,31 +201,17 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
 class _ResultRow extends StatelessWidget {
   final String label;
   final String value;
-
-  const _ResultRow({
-    required this.label,
-    required this.value,
-  });
+  const _ResultRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value),
         ],
       ),
     );

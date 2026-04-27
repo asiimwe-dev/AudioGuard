@@ -52,7 +52,7 @@ void main() {
       );
 
       expect(find.byType(VerifyScreen), findsOneWidget);
-      expect(find.text('Verify Watermark'), findsOneWidget);
+      expect(find.text('Verify Authenticity'), findsOneWidget);
     });
 
     testWidgets('AnalyzeScreen renders without errors',
@@ -98,7 +98,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Select Audio File'), findsOneWidget);
+      expect(find.text('Choose Audio File'), findsOneWidget);
     });
 
     testWidgets('DecodeScreen shows empty state without file',
@@ -126,7 +126,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Select Audio File'), findsOneWidget);
+      expect(find.text('Select Audio to Verify'), findsOneWidget);
     });
 
     testWidgets('AnalyzeScreen shows empty state without file',
@@ -156,40 +156,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Processing Mode'), findsOneWidget);
-      expect(find.text('General Settings'), findsOneWidget);
-      expect(find.text('Advanced'), findsOneWidget);
-    });
-
-    testWidgets('SettingsScreen API URL field is present',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            theme: AppTheme.lightTheme(1.0),
-            home: const SettingsScreen(),
-          ),
-        ),
-      );
-
-      expect(find.text('Customization'), findsOneWidget);
-      expect(find.text('Appearance'), findsOneWidget);
-    });
-
-    testWidgets('SettingsScreen has toggle switches',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            theme: AppTheme.lightTheme(1.0),
-            home: const SettingsScreen(),
-          ),
-        ),
-      );
-
-      expect(find.byType(SwitchListTile), findsWidgets);
-      // RadioListTile might be lazy-loaded, just verify settings exist
-      expect(find.text('General Settings'), findsOneWidget);
+      expect(find.text('USER PROFILE'), findsOneWidget);
+      expect(find.text('APPEARANCE'), findsOneWidget);
+      expect(find.text('PROCESSING MODE'), findsOneWidget);
+      expect(find.text('CONNECTIVITY & API'), findsOneWidget);
+      expect(find.text('DATA & PRIVACY'), findsOneWidget);
+      expect(find.text('ABOUT'), findsOneWidget);
     });
   });
 

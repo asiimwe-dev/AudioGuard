@@ -1,7 +1,13 @@
 /// Application-wide constants for AudioGuard Mobile
 class AppConstants {
+  // App Metadata
+  static const String appName = 'AudioGuard';
+  static const String appVersion = '1.0.0';
+  static const String buildNumber = '100';
+  static const String developerName = 'AudioGuard Team';
+  
   // API Configuration
-  static const String defaultApiBaseUrl = 'http://10.10.11.153:8000'; // Physical device on local network
+  static const String defaultApiBaseUrl = 'https://api.audioguard.io'; // Production cloud
   static const String devApiBaseUrl = 'http://localhost:8000'; // Local development
   static const String emulatorApiBaseUrl = 'http://10.0.2.2:8000'; // Android emulator
   static const String stagingApiBaseUrl = 'https://staging-api.audioguard.io';// Staging server
@@ -42,6 +48,8 @@ class AppConstants {
   static const String storageKeyApiBaseUrl = 'api_base_url';
   static const String storageKeyWatermarkMode = 'watermark_mode';
   static const String storageKeyAppTheme = 'app_theme';
+  static const String storageKeyAuthorName = 'user_author_name';
+  static const String storageKeyFirstRun = 'is_first_run';
 
   // UI
   static const Duration animationDuration = Duration(milliseconds: 300);

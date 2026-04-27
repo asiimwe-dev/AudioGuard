@@ -4,6 +4,7 @@ import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
+import '../utils/spacing.dart';
 
 /// Home screen - main dashboard
 class HomeScreen extends ConsumerWidget {
@@ -13,14 +14,27 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(watermarkModeProvider);
     final stats = ref.watch(statsProvider);
+    final userName = ref.watch(userIdentityProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AudioGuard'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('AudioGuard'),
+            Text(
+              'Acoustic Steganography',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    letterSpacing: 1.1,
+                  ),
+            ),
+          ],
+        ),
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () {
               ref.read(currentTabProvider.notifier).state = NavigationTab.settings;
             },
@@ -28,29 +42,44 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: AppSpacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Welcome Header
+            Text(
+              'Welcome back,',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Text(
+              userName,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+
             // Mode Selector Card
             _ModeCard(currentMode: mode),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.l),
 
             // Quick Stats
             _QuickStatsCard(stats: stats),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.l),
 
             // Action Grid
-            const Text(
+            Text(
               'Watermark Operations',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             _ActionGrid(),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.l),
 
             // Recent Operations
             Row(
@@ -58,7 +87,9 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Recent Operations',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (ref.watch(historyProvider).isNotEmpty)
                   TextButton(
@@ -69,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.s),
             _RecentOperations(),
           ],
         ),
@@ -194,42 +225,138 @@ class _QuickStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Card(
+      elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Global Statistics',
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Insights & Metrics',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Icon(
+                  Icons.analytics_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            
+            // Primary Metrics Row
             Row(
               children: [
                 Expanded(
-                  child: _StatItem(
-                    label: 'Operations',
+                  child: _StatBox(
+                    label: 'Total',
                     value: '${stats.totalOperations}',
-                    icon: Icons.check_circle_outline,
+                    icon: Icons.functions_rounded,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _StatItem(
-                    label: 'Success Rate',
-                    value: '${(stats.successRate * 100).toStringAsFixed(0)}%',
-                    icon: Icons.trending_up,
-                  ),
-                ),
-                Expanded(
-                  child: _StatItem(
-                    label: 'Avg Confidence',
+                  child: _StatBox(
+                    label: 'Accuracy',
                     value: '${(stats.averageConfidence * 100).toStringAsFixed(0)}%',
-                    icon: Icons.signal_cellular_4_bar,
+                    icon: Icons.gps_fixed_rounded,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatBox(
+                    label: 'Success',
+                    value: '${(stats.successRate * 100).toStringAsFixed(0)}%',
+                    icon: Icons.check_circle_outline_rounded,
+                    color: Colors.green,
                   ),
                 ),
               ],
             ),
+            
+            const SizedBox(height: 24),
+            const Divider(height: 1),
+            const SizedBox(height: 20),
+            
+            // Secondary Metrics (Breakdown)
+            Text(
+              'Operation Breakdown',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 24,
+              runSpacing: 16,
+              children: [
+                _MiniStat(
+                  icon: Icons.upload_file_rounded,
+                  label: 'Encodes',
+                  value: '${stats.typeBreakdown['encode'] ?? 0}',
+                ),
+                _MiniStat(
+                  icon: Icons.download_rounded,
+                  label: 'Decodes',
+                  value: '${stats.typeBreakdown['decode'] ?? 0}',
+                ),
+                _MiniStat(
+                  icon: Icons.verified_user_rounded,
+                  label: 'Verifies',
+                  value: '${stats.typeBreakdown['verify'] ?? 0}',
+                ),
+                _MiniStat(
+                  icon: Icons.insights_rounded,
+                  label: 'Analyses',
+                  value: '${stats.typeBreakdown['analyze'] ?? 0}',
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Success/Fail Bar
+            if (stats.totalOperations > 0)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Success Ratio',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      Text(
+                        '${stats.successfulOperations} Pass / ${stats.failedOperations} Fail',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: stats.successRate,
+                      backgroundColor: Colors.red.withValues(alpha: 0.1),
+                      color: Colors.green,
+                      minHeight: 6,
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -237,35 +364,77 @@ class _QuickStatsCard extends StatelessWidget {
   }
 }
 
-class _StatItem extends StatelessWidget {
+class _StatBox extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final Color color;
 
-  const _StatItem({
+  const _StatBox({
     required this.label,
     required this.value,
     required this.icon,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _MiniStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
         Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-          textAlign: TextAlign.center,
+          '$value $label',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

@@ -5,7 +5,7 @@ import '../providers/ui_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../utils/constants.dart';
 
-/// Settings screen - main settings hub with navigation to other screens
+/// Settings screen for application configuration
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -14,180 +14,195 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  late final TextEditingController _authorController;
+
+  @override
+  void initState() {
+    super.initState();
+    _authorController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _authorController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
-    final mode = ref.watch(watermarkModeProvider);
+    final appearance = ref.watch(appearanceProvider);
+    final currentAuthor = ref.watch(userIdentityProvider);
+
+    if (_authorController.text.isEmpty && currentAuthor != 'Anonymous') {
+      _authorController.text = currentAuthor;
+    } else if (_authorController.text.isEmpty && currentAuthor == 'Anonymous') {
+       _authorController.text = '';
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Processing Mode Section
-            _buildSectionTitle(context, 'Processing Mode'),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Default Mode',
-                      style: Theme.of(context).textTheme.labelLarge,
+        children: [
+          // User Profile Section
+          _SectionHeader(title: 'User Profile'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Author Identity',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'This name will be used as the default watermark message when encoding new audio.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _authorController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your name or ID',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.check),
+                        onPressed: () {
+                          if (_authorController.text.isNotEmpty) {
+                            ref.read(userIdentityProvider.notifier).setAuthorName(_authorController.text);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Identity updated')),
+                            );
+                            FocusScope.of(context).unfocus();
+                          }
+                        },
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    ...WatermarkMode.values.map((m) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: RadioListTile<WatermarkMode>(
-                          value: m,
-                          groupValue: mode,
-                          onChanged: (value) {
-                            if (value != null) {
-                              ref.read(watermarkModeProvider.notifier).state =
-                                  value;
-                              ref.read(settingsProvider.notifier).setDefaultMode(value);
-                            }
-                          },
-                          title: Text(m.label),
-                          subtitle: Text(_getModeDescription(m)),
-                          dense: true,
-                        ),
-                      );
-                    }),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // General Settings Section
-            _buildSectionTitle(context, 'General Settings'),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      title: const Text('Save Processing History'),
-                      subtitle: const Text(
-                          'Keep a log of encode/decode operations'),
-                      value: settings.saveHistory,
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setSaveHistory(value);
-                      },
-                    ),
-                    const Divider(),
-                    SwitchListTile(
-                      title: const Text('Show Notifications'),
-                      subtitle:
-                          const Text('Get notified when operations complete'),
-                      value: settings.showNotifications,
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setShowNotifications(value);
-                      },
-                    ),
-                    const Divider(),
-                    SwitchListTile(
-                      title: const Text('Enable Analytics'),
-                      subtitle: const Text(
-                          'Help improve AudioGuard by sending usage stats'),
-                      value: settings.enableAnalytics,
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setEnableAnalytics(value);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Advanced Section
-            _buildSectionTitle(context, 'Advanced'),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Cache & Data',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await ref.read(storageServiceProvider).clearAll();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Cache and storage cleared')),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Clear Cache'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('All settings reset to default')),
-                        );
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reset to Default'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Appearance Settings Section
-            _buildSectionTitle(context, 'Customization'),
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.palette),
-                title: const Text('Appearance'),
-                subtitle: const Text('Font, size, theme, contrast'),
-                trailing: const Icon(Icons.arrow_forward),
-                onTap: () {
-                  ref.read(currentSettingsScreenProvider.notifier).state =
-                      SettingsSubScreen.appearance;
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
           ),
+          const SizedBox(height: 24),
+
+          // Customization Section
+          _SectionHeader(title: 'Appearance'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Theme and Font Size'),
+              subtitle: Text('Current: ${appearance.themeMode.name.toUpperCase()}'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                ref.read(currentSettingsScreenProvider.notifier).state = SettingsSubScreen.appearance;
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Processing Settings
+          _SectionHeader(title: 'Processing Mode'),
+          Card(
+            child: Column(
+              children: WatermarkMode.values.map((mode) {
+                return RadioListTile<WatermarkMode>(
+                  title: Text(mode.label),
+                  subtitle: Text(_getModeDescription(mode)),
+                  value: mode,
+                  groupValue: settings.defaultMode,
+                  onChanged: (value) {
+                    if (value != null) {
+                      ref.read(settingsProvider.notifier).setDefaultMode(value);
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Connectivity Section
+          _SectionHeader(title: 'Connectivity & API'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.cloud_outlined),
+              title: const Text('API Configuration'),
+              subtitle: const Text('Backend URL and Authentication'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                ref.read(currentTabProvider.notifier).state = NavigationTab.apiConfig;
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // General Settings
+          _SectionHeader(title: 'Data & Privacy'),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('Save History'),
+                  subtitle: const Text('Keep track of previous operations locally'),
+                  value: settings.saveHistory,
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).setSaveHistory(value);
+                  },
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Enable Analytics'),
+                  subtitle: const Text('Anonymous usage data to help us improve'),
+                  value: settings.enableAnalytics,
+                  onChanged: (value) {
+                    ref.read(settingsProvider.notifier).setEnableAnalytics(value);
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.red),
+                  title: const Text('Clear All Data', style: TextStyle(color: Colors.red)),
+                  onTap: () => _showClearDataDialog(context, ref),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // App Info
+          _SectionHeader(title: 'About'),
+          Card(
+            child: Column(
+              children: [
+                const ListTile(
+                  title: Text('Version'),
+                  trailing: Text('${AppConstants.appVersion}+${AppConstants.buildNumber}'),
+                ),
+                const Divider(height: 1),
+                const ListTile(
+                  title: Text('Developer'),
+                  trailing: Text(AppConstants.developerName),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  title: const Text('Terms of Service'),
+                  trailing: const Icon(Icons.open_in_new, size: 16),
+                  onTap: () {
+                    // Open URL
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 
@@ -200,5 +215,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case WatermarkMode.hybrid:
         return 'Try local first, fall back to cloud';
     }
+  }
+
+  void _showClearDataDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear all data?'),
+        content: const Text('This will delete all history, custom settings, and identity info. This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await ref.read(storageServiceProvider).clearAll();
+              ref.read(historyProvider.notifier).clearHistory();
+              if (mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All data cleared')),
+                );
+              }
+            },
+            child: const Text('Clear Everything', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
   }
 }

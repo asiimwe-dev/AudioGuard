@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
@@ -17,29 +18,29 @@ class EncodeScreen extends ConsumerStatefulWidget {
 
 class _EncodeScreenState extends ConsumerState<EncodeScreen> {
   late final TextEditingController _messageController;
+  late final TextEditingController _amplitudeController;
 
   @override
   void initState() {
     super.initState();
     _messageController = TextEditingController();
+    _amplitudeController =
+        TextEditingController(text: AppConstants.defaultAmplitudeFactor.toString());
+        
+    // Pre-populate with author name if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final author = ref.read(userIdentityProvider);
+      if (author != 'Anonymous' && _messageController.text.isEmpty) {
+        _messageController.text = author;
+      }
+    });
   }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _amplitudeController.dispose();
     super.dispose();
-  }
-
-  String _getErrorMessage(Object error) {
-    if (error is ProcessingError) {
-      return error.details ?? error.message;
-    }
-    final message = error.toString();
-    // Clean up stack traces
-    if (message.contains('Exception:')) {
-      return message.split('Exception:').last.trim().split('\n').first;
-    }
-    return message.split('\n').first;
   }
 
   Future<void> _pickAudioFile() async {
@@ -50,14 +51,16 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
     }
   }
 
+  Future<void> _shareFile(String path) async {
+    await Share.shareXFiles([XFile(path)], text: 'Check out my watermarked audio via AudioGuard!');
+  }
+
   @override
   Widget build(BuildContext context) {
     final audioPath = ref.watch(selectedAudioFileProvider);
-    final audioMetadata = ref.watch(audioMetadataProvider);
     final encoding = ref.watch(encodingProvider);
     final mode = ref.watch(watermarkModeProvider);
-    final messageError =
-        ref.watch(messageValidationProvider(_messageController.text));
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -69,342 +72,256 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
                 HomeSubScreen.dashboard;
           },
         ),
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Audio File Selector
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.music_note,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Audio File',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (audioPath == null)
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.folder_open),
-                        label: const Text('Select Audio File'),
-                        onPressed: _pickAudioFile,
-                      )
-                    else ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              audioMetadata.when(
-                                data: (metadata) => metadata?.filename ?? 'Unknown',
-                                loading: () => 'Loading...',
-                                error: (_, _) => 'Error loading metadata',
-                              ),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            audioMetadata.when(
-                              data: (metadata) => Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Duration: ${metadata?.durationString}',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                  Text(
-                                    'Size: ${metadata?.fileSizeString}',
-                                    style:
-                                        Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                              loading: () =>
-                                  const CircularProgressIndicator(),
-                              error: (_, _) => const SizedBox.shrink(),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: _pickAudioFile,
-                        child: const Text('Change File'),
-                      ),
-                      const SizedBox(height: 16),
-                      // Audio Player Widget
-                      AudioPlayerWidget(
-                        filePath: audioPath,
-                        fileName: audioMetadata.maybeWhen(
-                          data: (metadata) => metadata?.filename,
-                          orElse: () => null,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            // Info Header
+            _buildInfoCard(theme),
             const SizedBox(height: 24),
 
-            // Message Input
+            // Audio File Selector
+            _buildFileSelector(theme, audioPath),
+            const SizedBox(height: 24),
+
+            // Watermark Message
             Text(
-              'Watermark Message',
-              style: Theme.of(context).textTheme.titleMedium,
+              'Watermark Signature',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _messageController,
-              maxLength: AppConstants.maxMessageLength,
-              maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'Enter the message to embed (max 256 characters)',
-                errorText: messageError?.message,
-                errorMaxLines: 2,
+                hintText: 'e.g., AUTHOR_ID_2026',
+                helperText: 'This message will be invisibly woven into the audio.',
+                prefixIcon: const Icon(Icons.edit_note),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onChanged: (_) {
-                setState(() {});
-              },
+              maxLength: AppConstants.maxMessageLength,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Mode Selector
-            Text(
-              'Processing Mode',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            SegmentedButton<WatermarkMode>(
-              segments: WatermarkMode.values
-                  .map(
-                    (m) => ButtonSegment(
-                      value: m,
-                      label: Text(m.label),
-                    ),
-                  )
-                  .toList(),
-              selected: {mode},
-              onSelectionChanged: (selected) {
-                ref.read(watermarkModeProvider.notifier).state = selected.first;
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Encoding Result
-            if (encoding.isProcessing) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+            // Settings Expansion
+            ExpansionTile(
+              title: const Text('Advanced Encoding Settings'),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Encoding in progress...',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: encoding.progress,
-                          minHeight: 8,
+                      TextField(
+                        controller: _amplitudeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Amplitude Factor',
+                          helperText: 'Higher = More robust but more audible (0.01 - 0.1)',
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Processing Mode:'),
+                          Text(mode.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Encoding Status & Results
+            if (encoding.isProcessing) _buildProcessingCard(theme, encoding.progress),
+            
             encoding.result.when(
-              data: (result) => Card(
-                color: Colors.green[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Encoding Successful',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Colors.green[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _ResultRow(
-                        label: 'Mode',
-                        value: result.mode,
-                      ),
-                      _ResultRow(
-                        label: 'Processing Time',
-                        value: '${result.processingTime.inMilliseconds}ms',
-                      ),
-                      _ResultRow(
-                        label: 'Confidence',
-                        value: '${(result.confidence * 100).toStringAsFixed(1)}%',
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.download),
-                          label: const Text('Download'),
-                          onPressed: () {
-                            // TODO: Download file
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              error: (error, _) => Card(
-                color: Colors.red[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Encoding Failed',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Colors.red[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _getErrorMessage(error),
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Try Again'),
-                          onPressed: () {
-                            ref.read(encodingProvider.notifier).reset();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              data: (result) => _buildResultCard(theme, result),
+              error: (error, _) => _buildErrorCard(theme, error),
               loading: () => const SizedBox.shrink(),
             ),
-            const SizedBox(height: 24),
+            
+            const SizedBox(height: 32),
 
-            // Encode Button
+            // Main Action Button
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text('Encode Watermark'),
-                onPressed: audioPath != null &&
-                        _messageController.text.isNotEmpty &&
-                        messageError == null &&
-                        !encoding.isProcessing
-                    ? () {
+                icon: const Icon(Icons.lock_outline),
+                label: const Text('EMBED WATERMARK', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: audioPath == null || encoding.isProcessing
+                    ? null
+                    : () {
                         ref.read(encodingProvider.notifier).encode(
                               audioFilePath: audioPath,
                               message: _messageController.text,
                               mode: mode,
                             );
-                      }
-                    : null,
+                      },
               ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_fix_high, color: theme.colorScheme.primary),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Sign your work with a spectral digital signature that survives conversion and noise.',
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileSelector(ThemeData theme, String? audioPath) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Input Audio', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 12),
+            if (audioPath == null)
+              OutlinedButton.icon(
+                onPressed: _pickAudioFile,
+                icon: const Icon(Icons.audio_file),
+                label: const Text('Choose Audio File'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+              )
+            else ...[
+              Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      audioPath.split('/').last,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(onPressed: _pickAudioFile, child: const Text('Change')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AudioPlayerWidget(filePath: audioPath, fileName: audioPath.split('/').last),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProcessingCard(ThemeData theme, double progress) {
+    return Card(
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Applying Fourier Transformation...', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(value: progress, borderRadius: BorderRadius.circular(8)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultCard(ThemeData theme, EncodingResult result) {
+    if (!result.success) return const SizedBox.shrink();
+
+    return Card(
+      color: Colors.green.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Colors.green, width: 0.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.verified, color: Colors.green),
+                const SizedBox(width: 12),
+                Text('SUCCESSFULLY SIGNED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Your audio has been watermarked. The signature is now part of the spectral data.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _shareFile(result.encodedFilePath),
+                    icon: const Icon(Icons.share_outlined),
+                    label: const Text('SHARE FILE'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ResultRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _ResultRow({
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.green[900],
+  Widget _buildErrorCard(ThemeData theme, Object error) {
+    return Card(
+      color: theme.colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: theme.colorScheme.error),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Failed to encode: $error',
+                style: TextStyle(color: theme.colorScheme.onErrorContainer),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
