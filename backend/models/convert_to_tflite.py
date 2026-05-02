@@ -59,7 +59,7 @@ def load_pytorch_model(model_path: str) -> nn.Module:
     return model
 
 
-def create_dummy_input() -> torch.Tensor:
+def create_dummy_input() -> "torch.Tensor":
     """
     Create dummy input for model tracing.
 

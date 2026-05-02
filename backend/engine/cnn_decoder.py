@@ -93,7 +93,7 @@ class CNNWatermarkDecoder:
         self,
         audio: np.ndarray,
         sample_rate: int,
-    ) -> torch.Tensor:
+    ) -> "torch.Tensor":
         """
         Prepare magnitude spectrogram for CNN input.
 

@@ -101,7 +101,7 @@ class WatermarkDetectorCNN(nn.Module):
         else:
             self.fc = nn.Linear(256, output_bits)  # Multi-bit: per-bit prediction
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: "torch.Tensor") -> "torch.Tensor":
         """
         Forward pass through CNN.
 
@@ -167,7 +167,7 @@ class FocalLoss(nn.Module):
         self.alpha = alpha
         self.gamma = gamma
 
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: "torch.Tensor", targets: "torch.Tensor") -> "torch.Tensor":
         """
         Compute focal loss.
 
