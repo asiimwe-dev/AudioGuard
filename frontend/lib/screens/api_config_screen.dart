@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
-import '../providers/ui_provider.dart';
 import '../utils/constants.dart';
-import '../services/api_service.dart';
 
 /// API Configuration screen - dedicated tab for backend configuration
 class ApiConfigScreen extends ConsumerStatefulWidget {

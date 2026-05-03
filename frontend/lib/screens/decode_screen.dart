@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
-import '../providers/ui_provider.dart';
-import '../utils/constants.dart';
 import '../models/watermark_model.dart';
 import '../widgets/audio_player_widget.dart';
 

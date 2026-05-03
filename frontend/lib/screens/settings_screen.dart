@@ -255,9 +255,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ref.read(historyProvider.notifier).clearHistory();
               if (mounted) {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All data cleared')),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('All data cleared')),
+                  );
+                }
               }
             },
             child: const Text('Clear Everything'),

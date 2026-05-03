@@ -162,9 +162,6 @@ class AudioGuardApiClient {
     _analyzeBreaker = CircuitBreaker(name: 'analyze');
   }
 
-  /// Get current base URL from Dio
-  String get _baseUrl => dio.options.baseUrl;
-
   /// Check API health
   Future<HealthResponse> getHealth() async {
     if (!_healthBreaker.canAttempt()) {
@@ -176,7 +173,7 @@ class AudioGuardApiClient {
     }
     
     try {
-      final response = await dio.get('${AppConstants.healthEndpoint}');
+      final response = await dio.get(AppConstants.healthEndpoint);
       _healthBreaker.recordSuccess();
       return HealthResponse.fromJson(response.data);
     } catch (e) {

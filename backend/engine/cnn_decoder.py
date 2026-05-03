@@ -22,12 +22,15 @@ except ImportError:
 
 
 import numpy as np
+import logging
 from pathlib import Path
 from typing import Dict, Optional
 import soundfile as sf
 
 from .utils import stft, hanning_window
 from .decoder import AudioGuardDecoder
+
+logger = logging.getLogger(__name__)
 from .cnn_model import WatermarkDetectorCNN
 
 
@@ -186,7 +189,8 @@ class CNNWatermarkDecoder:
                     char_code = int(byte, 2)
                     if 32 <= char_code < 127:
                         decoded_message += chr(char_code)
-        except:
+        except (ValueError, IndexError) as e:
+            logger.warning(f"Error decoding message bits: {e}")
             decoded_message = ""
 
         return {

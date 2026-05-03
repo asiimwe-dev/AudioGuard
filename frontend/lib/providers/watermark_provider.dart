@@ -629,17 +629,13 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     // Auto-save to ConfigService
     ConfigService().setApiBaseUrl(url);
     // Also persist to storage
-    if (_storage != null) {
-      _storage.setApiBaseUrl(url);
-    }
+    _storage.setApiBaseUrl(url);
   }
 
   void setDefaultMode(WatermarkMode mode) {
     state = state.copyWith(defaultMode: mode);
     // Auto-save to storage
-    if (_storage != null) {
-      _storage.setWatermarkMode(mode.name);
-    }
+    _storage.setWatermarkMode(mode.name);
   }
 
   void setAutoSelectMode(bool enabled) {
@@ -649,7 +645,7 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   void setAuthToken(String? token) {
     state = state.copyWith(authToken: token);
     // Auto-save to storage
-    if (token != null && _storage != null) {
+    if (token != null) {
       _storage.saveApiToken(token);
     }
   }
@@ -657,9 +653,7 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   void setDarkMode(bool enabled) {
     state = state.copyWith(darkModeEnabled: enabled);
     // Auto-save to storage
-    if (_storage != null) {
-      _storage.setBool('dark_mode', enabled);
-    }
+    _storage.setBool('dark_mode', enabled);
   }
 
   void setSaveHistory(bool enabled) {
