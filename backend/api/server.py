@@ -359,9 +359,16 @@ def create_app(debug: bool = False) -> FastAPI:
                 try:
                     logger.info("Attempting CNN decoding (primary method)...")
                     cnn_decoder = CNNWatermarkDecoder()
-                    message, confidence = cnn_decoder.decode(str(input_wav))
-                    method = "cnn"
-                    logger.info(f"CNN decode successful: confidence={confidence:.2%}")
+                    
+                    # Determine message length to try with CNN
+                    cnn_msg_len = message_length if message_length is not None else 8  # Default to 8 chars if auto-detect
+                    cnn_result = cnn_decoder.decode_with_cnn(str(input_wav), message_length=cnn_msg_len)
+                    
+                    if isinstance(cnn_result, dict):
+                        message = cnn_result.get('message')
+                        confidence = cnn_result.get('cnn_confidence', 0.0)
+                        method = "cnn"
+                        logger.info(f"CNN decode successful: message='{message}', confidence={confidence:.2%}")
                 except Exception as e:
                     logger.warning(f"CNN decoding failed, falling back to classical: {str(e)}")
                     message = None
