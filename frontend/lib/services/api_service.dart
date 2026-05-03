@@ -166,15 +166,35 @@ class AudioGuardApiClient {
         if (messageLength != null) 'message_length': messageLength,
       });
 
+      final endpoint = AppConstants.encodeEndpoint;
+      
       final response = await dio.post(
-        '$baseUrl${AppConstants.encodeEndpoint}',
+        endpoint,
         data: formData,
       );
 
-      return EncodeResponse.fromJson(response.data);
+      if (response.statusCode == null || response.statusCode! < 200 || response.statusCode! >= 300) {
+        throw ProcessingError(
+          message: 'Encoding failed with status ${response.statusCode}: ${response.data}',
+          code: 'ENCODING_FAILED',
+          originalError: response.data,
+        );
+      }
+
+      if (response.data == null) {
+        throw ProcessingError(
+          message: 'Encoding failed: empty response',
+          code: 'ENCODING_FAILED',
+          originalError: 'No data in response',
+        );
+      }
+
+      return EncodeResponse.fromJson(response.data as Map<String, dynamic>);
+    } on ProcessingError {
+      rethrow;
     } catch (e) {
       throw ProcessingError(
-        message: 'Encoding failed',
+        message: 'Encoding failed: $e',
         code: 'ENCODING_FAILED',
         originalError: e,
       );
@@ -303,11 +323,15 @@ class ApiService {
   }
 
   void _initializeDio() {
+    final apiTimeout = ConfigService().getApiTimeout();
+    final uploadTimeout = ConfigService().getFileUploadTimeout();
+    
     _dio = Dio(
       BaseOptions(
         baseUrl: _baseUrl,
-        connectTimeout: Duration(seconds: ConfigService().getApiTimeout()),
-        receiveTimeout: Duration(seconds: ConfigService().getApiTimeout()),
+        connectTimeout: Duration(seconds: apiTimeout),
+        receiveTimeout: Duration(seconds: uploadTimeout), // Use upload timeout for receive
+        sendTimeout: Duration(seconds: uploadTimeout),     // Use upload timeout for send
         headers: {
           if (_authToken != null) 'Authorization': 'Bearer $_authToken',
         },
