@@ -158,6 +158,7 @@ def create_app(debug: bool = False) -> FastAPI:
         """
         start_time = time.time()
         temp_dir = tempfile.mkdtemp()
+        persistent_path = None
 
         try:
             # Validate message
@@ -184,22 +185,48 @@ def create_app(debug: bool = False) -> FastAPI:
                     detail="bits_per_frame must be between 1 and 8",
                 )
 
-            # Save uploaded file
-            input_path = Path(temp_dir) / "input_audio"
+            # Read file into memory (only once)
             content = await audio_file.read()
-
-            # Handle different formats
-            try:
-                audio_data, sr = sf.read(io.BytesIO(content))
-            except Exception:
+            file_size_mb = len(content) / (1024 * 1024)
+            
+            # Limit file size to prevent OOM (max 50MB)
+            if file_size_mb > 50:
                 raise HTTPException(
                     status_code=400,
-                    detail="Invalid audio format. Supported: WAV, MP3, FLAC, OGG",
+                    detail=f"Audio file too large ({file_size_mb:.1f}MB). Maximum: 50MB",
                 )
+
+            # Handle different formats with explicit error handling
+            try:
+                audio_data, sr = sf.read(io.BytesIO(content))
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid audio format. Supported: WAV, MP3, FLAC, OGG. Error: {str(e)[:100]}",
+                )
+
+            # Clean up input content from memory immediately
+            del content
+            
+            # Downsample to 22.05 kHz if needed (reduce memory usage)
+            if sr > 22050:
+                import librosa
+                try:
+                    audio_data = librosa.resample(audio_data, orig_sr=sr, target_sr=22050)
+                    sr = 22050
+                except Exception:
+                    # If librosa resample fails, use scipy
+                    from scipy import signal
+                    num_samples = int(len(audio_data) * 22050 / sr)
+                    audio_data = signal.resample(audio_data, num_samples)
+                    sr = 22050
 
             # Save as WAV for processing
             input_wav = Path(temp_dir) / "input.wav"
             sf.write(str(input_wav), audio_data, sr)
+
+            # Clear audio from memory after saving
+            del audio_data
 
             # Encode watermark
             output_wav = Path(temp_dir) / "output.wav"
@@ -225,14 +252,14 @@ def create_app(debug: bool = False) -> FastAPI:
 
             processing_time = (time.time() - start_time) * 1000
 
-            # Schedule cleanup of temp directory only
+            # Schedule cleanup of temp directory
             if background_tasks:
                 background_tasks.add_task(cleanup_temp_file, temp_dir)
 
             return EncodeResponse(
                 success=True,
                 file_id=file_id,
-                original_duration=len(audio_data) / sr,
+                original_duration=len(audio_data) if 'audio_data' in locals() else 0 / sr,
                 sample_rate=sr,
                 message_length=len(message),
                 embedding_strength=amplitude_factor,
@@ -244,6 +271,11 @@ def create_app(debug: bool = False) -> FastAPI:
         except Exception as e:
             logger.error(f"Encoding error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Encoding failed: {str(e)}")
+        finally:
+            # Ensure temp directory is cleaned up even on error
+            if temp_dir and Path(temp_dir).exists():
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
     @app.post("/api/v1/decode", response_model=DecodeResponse)
     async def decode_watermark(request_data: DecodeRequest):
