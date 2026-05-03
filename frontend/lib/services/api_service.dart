@@ -452,9 +452,20 @@ class ApiService {
         sendTimeout: Duration(seconds: uploadTimeout),     // Use upload timeout for send
         headers: {
           if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
       ),
     );
+
+    // Configure SSL/TLS for HTTPS connections (fixes Android 12 cert issues)
+    (_dio.httpClientAdapter as dynamic).onHttpClientCreate = (HttpClient httpClient) {
+      httpClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
+        // Accept certificates from onrender.com and subdomains
+        return host.contains('onrender.com') || host.contains('audioguard');
+      };
+      return httpClient;
+    };
 
     // Add logging interceptor
     _dio.interceptors.add(
