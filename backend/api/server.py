@@ -10,6 +10,7 @@ import os
 import time
 import tempfile
 import logging
+import gc
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
@@ -106,14 +107,31 @@ def create_app(debug: bool = False) -> FastAPI:
         allow_headers=["Content-Type", "Authorization"],
     )
 
+    @app.on_event("startup")
+    async def startup_event():
+        """Cleanup old files on startup."""
+        logger.info("AudioGuard API starting up...")
+        cleanup_resources()
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Cleanup on shutdown."""
+        logger.info("AudioGuard API shutting down...")
+        cleanup_resources()
+
     @app.middleware("http")
     async def add_request_id(request, call_next):
-        """Add request ID to all responses."""
+        """Add request ID to all responses and manage resources."""
         app_state["request_count"] += 1
         request.state.request_id = f"req_{app_state['request_count']}"
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request.state.request_id
-        return response
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request.state.request_id
+            return response
+        finally:
+            # Periodic cleanup every 50 requests
+            if app_state["request_count"] % 50 == 0:
+                gc.collect()
 
     # Routes
     @app.get("/health", response_model=HealthResponse)
@@ -283,6 +301,8 @@ def create_app(debug: bool = False) -> FastAPI:
             if temp_dir and Path(temp_dir).exists():
                 import shutil
                 shutil.rmtree(temp_dir, ignore_errors=True)
+            # Force garbage collection to free memory immediately
+            gc.collect()
 
     @app.post("/api/v1/decode", response_model=DecodeResponse)
     async def decode_watermark(request_data: DecodeRequest):
@@ -404,6 +424,7 @@ def create_app(debug: bool = False) -> FastAPI:
             logger.error(f"Decoding error: {str(e)}")
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
+            gc.collect()
             return DecodeResponse(
                 success=False,
                 message=None,
@@ -510,6 +531,7 @@ def create_app(debug: bool = False) -> FastAPI:
             logger.error(f"Verification error: {str(e)}")
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
+            gc.collect()
             raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
 
     @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
@@ -600,6 +622,7 @@ def create_app(debug: bool = False) -> FastAPI:
             logger.error(f"Analysis error: {str(e)}")
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
+            gc.collect()
             raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
     @app.get("/api/v1/download/{file_id}")
@@ -641,13 +664,34 @@ def create_app(debug: bool = False) -> FastAPI:
 
 
 def cleanup_temp_file(path: str):
-    """Clean up temporary files."""
+    """Clean up temporary files and force garbage collection."""
     try:
         import shutil
-
         shutil.rmtree(path, ignore_errors=True)
     except Exception as e:
         logger.warning(f"Failed to clean up {path}: {str(e)}")
+    finally:
+        # Force garbage collection to free memory immediately
+        gc.collect()
+
+
+def cleanup_resources():
+    """Force cleanup of all temporary files in storage directory."""
+    try:
+        import shutil
+        # Clean up old temp directories (older than 1 hour)
+        now = time.time()
+        for item in Path(tempfile.gettempdir()).iterdir():
+            if item.name.startswith("tmp") and item.is_dir():
+                try:
+                    mtime = item.stat().st_mtime
+                    if now - mtime > 3600:  # Older than 1 hour
+                        shutil.rmtree(str(item), ignore_errors=True)
+                except Exception:
+                    pass
+        gc.collect()
+    except Exception as e:
+        logger.warning(f"Resource cleanup failed: {e}")
 
 
 # Create default app instance
