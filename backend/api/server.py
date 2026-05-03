@@ -349,61 +349,68 @@ def create_app(debug: bool = False) -> FastAPI:
                     detail=f"File ID '{file_id}' not found",
                 )
             input_wav = app_state["encoded_files"][file_id]
-            decoder = AudioGuardDecoder()
             message = None
             confidence = 0.0
             snr = None
             method = "classical"
             
-            if message_length is not None:
-                # Try with specified message length
+            # **PRIMARY: Try CNN decoder first if available**
+            if CNN_AVAILABLE:
                 try:
-                    result = decoder.decode(str(input_wav), message_length=message_length)
-                    if isinstance(result, dict):
-                        message = result.get('message')
-                        confidence = result.get('confidence', 0.0)
-                        snr = result.get('snr_db')
-                    else:
-                        message, confidence, snr = result
-                except Exception as e:
-                    logger.warning(f"Decode failed with message_length={message_length}: {str(e)}")
-            else:
-                # Try different message lengths (min 1 to max_message_length)
-                max_len = request_data.max_message_length
-                for try_length in range(1, max_len + 1):
-                    try:
-                        result = decoder.decode(str(input_wav), message_length=try_length)
-                        if isinstance(result, dict):
-                            msg = result.get('message')
-                            conf = result.get('confidence', 0.0)
-                            s = result.get('snr_db')
-                        else:
-                            msg, conf, s = result
-                        
-                        if msg is not None and conf > confidence:
-                            message = msg
-                            confidence = conf
-                            snr = s
-                            if confidence > 0.8:  # Good enough, stop searching
-                                break
-                    except Exception:
-                        continue
-
-            # Fallback to CNN if requested and classical failed
-            if (
-                use_cnn
-                and CNN_AVAILABLE
-                and (message is None or confidence < confidence_threshold)
-            ):
-                try:
+                    logger.info("Attempting CNN decoding (primary method)...")
                     cnn_decoder = CNNWatermarkDecoder()
                     message, confidence = cnn_decoder.decode(str(input_wav))
                     method = "cnn"
+                    logger.info(f"CNN decode successful: confidence={confidence:.2%}")
                 except Exception as e:
-                    logger.warning(f"CNN decoding failed: {str(e)}")
-                    method = "classical"
-            else:
-                method = "classical"
+                    logger.warning(f"CNN decoding failed, falling back to classical: {str(e)}")
+                    message = None
+                    confidence = 0.0
+            
+            # **FALLBACK: Use classical decoder if CNN failed or unavailable**
+            if message is None or confidence < confidence_threshold:
+                logger.info("Attempting classical decoding...")
+                decoder = AudioGuardDecoder()
+                
+                if message_length is not None:
+                    # Try with specified message length
+                    try:
+                        result = decoder.decode(str(input_wav), message_length=message_length)
+                        if isinstance(result, dict):
+                            message = result.get('message')
+                            confidence = result.get('confidence', 0.0)
+                            snr = result.get('snr_db')
+                        else:
+                            message, confidence, snr = result
+                        method = "classical"
+                        logger.info(f"Classical decode with length={message_length}: message={message}, conf={confidence:.2%}")
+                    except Exception as e:
+                        logger.warning(f"Decode failed with message_length={message_length}: {str(e)}")
+                else:
+                    # Try different message lengths (min 1 to max_message_length)
+                    max_len = request_data.max_message_length
+                    best_result = (None, 0.0, None)
+                    for try_length in range(1, max_len + 1):
+                        try:
+                            result = decoder.decode(str(input_wav), message_length=try_length)
+                            if isinstance(result, dict):
+                                msg = result.get('message')
+                                conf = result.get('confidence', 0.0)
+                                s = result.get('snr_db')
+                            else:
+                                msg, conf, s = result
+                            
+                            if msg is not None and conf > best_result[1]:
+                                best_result = (msg, conf, s)
+                                if conf > 0.8:  # Good enough, stop searching
+                                    break
+                        except Exception:
+                            continue
+                    
+                    if best_result[0] is not None:
+                        message, confidence, snr = best_result
+                        method = "classical"
+                        logger.info(f"Classical decode with auto-length: message={message}, conf={confidence:.2%}")
 
             processing_time = (time.time() - start_time) * 1000
 
