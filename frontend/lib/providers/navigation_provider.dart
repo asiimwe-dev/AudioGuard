@@ -73,6 +73,7 @@ enum HomeSubScreen {
   decode,
   verify,
   analyze,
+  files,
 }
 
 final currentHomeScreenProvider = StateProvider<HomeSubScreen>((ref) {

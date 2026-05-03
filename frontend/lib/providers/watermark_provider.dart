@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:io';
 import '../models/watermark_model.dart';
+import '../models/file_library_model.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../services/local_service.dart';
 import '../services/smart_processing_service.dart';
 import '../services/audio_service.dart';
 import '../services/config_service.dart';
+import '../services/file_library_service.dart';
 import '../utils/constants.dart';
 import 'ui_provider.dart';
 
@@ -26,6 +29,10 @@ final localServiceProvider = Provider((ref) {
 
 final audioServiceProvider = Provider((ref) {
   return AudioService();
+});
+
+final fileLibraryServiceProvider = Provider((ref) {
+  return FileLibraryService();
 });
 
 final connectivityProvider = Provider((ref) {
@@ -60,6 +67,17 @@ final audioMetadataProvider = FutureProvider<AudioMetadata?>((ref) async {
   
   return await audioService.getAudioMetadata(audioPath);
 });
+
+// ===== File Library Providers =====
+
+/// List of all encoded files in library
+final encodedFilesLibraryProvider = FutureProvider<List<EncodedAudioFile>>((ref) async {
+  final fileLibraryService = ref.watch(fileLibraryServiceProvider);
+  return await fileLibraryService.getAllEncodedFiles();
+});
+
+/// Selected encoded file from library
+final selectedLibraryFileProvider = StateProvider<String?>((ref) => null);
 
 // ===== Watermark Mode Provider =====
 
@@ -178,6 +196,23 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
       // Store the file_id from the response for subsequent operations
       if (result.fileId != null && result.fileId!.isNotEmpty) {
         _ref.read(selectedEncodedFileIdProvider.notifier).state = result.fileId;
+      }
+
+      // Save encoded file to library
+      try {
+        final fileLibraryService = _ref.read(fileLibraryServiceProvider);
+        await fileLibraryService.addEncodedFile(
+          sourceFile: File(result.encodedFilePath),
+          message: message,
+          amplitudeFactor: 0.05, // Default amplitude
+          originalFilename: audioFilePath.split('/').last,
+        );
+        
+        // Update library
+        _ref.invalidate(encodedFilesLibraryProvider);
+      } catch (e) {
+        // Log error but don't fail the encoding operation
+        // Library save is not critical to encoding success
       }
 
       state = state.copyWith(

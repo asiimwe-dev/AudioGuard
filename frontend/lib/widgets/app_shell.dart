@@ -6,6 +6,7 @@ import '../screens/encode_screen.dart';
 import '../screens/decode_screen.dart';
 import '../screens/verify_screen.dart';
 import '../screens/analyze_screen.dart';
+import '../screens/files_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/api_config_screen.dart';
 import '../screens/about_screen.dart';
@@ -139,6 +140,7 @@ class AppShell extends ConsumerWidget {
       HomeSubScreen.decode => const DecodeScreen(),
       HomeSubScreen.verify => const VerifyScreen(),
       HomeSubScreen.analyze => const AnalyzeScreen(),
+      HomeSubScreen.files => const FilesScreen(),
     };
   }
 

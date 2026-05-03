@@ -486,6 +486,15 @@ class _ActionGrid extends ConsumerWidget {
           ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.analyze;
         },
       ),
+      _ActionData(
+        icon: Icons.folder_open,
+        label: 'Files',
+        description: 'File library',
+        color: const Color(0xFF9C27B0),
+        onTap: (ref) {
+          ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.files;
+        },
+      ),
     ];
 
     return GridView.count(
