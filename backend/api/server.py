@@ -65,8 +65,8 @@ app_state = {
 }
 
 # Create persistent storage for encoded files
-STORAGE_DIR = Path(tempfile.gettempdir()) / "audioguard_storage"
-STORAGE_DIR.mkdir(exist_ok=True)
+STORAGE_DIR = Path(os.environ.get("AUDIOGUARD_STORAGE", "/app/storage")) / "audioguard_storage"
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def create_app(debug: bool = False) -> FastAPI:

@@ -4,9 +4,14 @@ import 'widgets/app_shell.dart';
 import 'theme/app_theme.dart';
 import 'providers/ui_provider.dart';
 import 'services/storage_service.dart';
+import 'services/config_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize config service
+  final configService = ConfigService();
+  await configService.init();
   
   // Initialize storage
   final storageService = StorageService();

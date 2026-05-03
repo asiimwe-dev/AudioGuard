@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import './config_service.dart';
 
 /// API Response Models
 
@@ -255,6 +257,31 @@ class AudioGuardApiClient {
       );
     }
   }
+
+  /// Download watermarked audio file
+  Future<void> downloadFile({
+    required String fileId,
+    required String savePath,
+  }) async {
+    try {
+      final response = await dio.get(
+        '$baseUrl/api/v1/download/$fileId',
+        options: Options(
+          responseType: ResponseType.bytes,
+        ),
+      );
+
+      // Write bytes to file
+      final file = File(savePath);
+      await file.writeAsBytes(response.data);
+    } catch (e) {
+      throw ProcessingError(
+        message: 'File download failed',
+        code: 'DOWNLOAD_FAILED',
+        originalError: e,
+      );
+    }
+  }
 }
 
 /// API Service wrapper with error handling and logging
@@ -274,8 +301,8 @@ class ApiService {
     _dio = Dio(
       BaseOptions(
         baseUrl: _baseUrl,
-        connectTimeout: AppConstants.apiTimeout,
-        receiveTimeout: AppConstants.apiTimeout,
+        connectTimeout: Duration(seconds: ConfigService().getApiTimeout()),
+        receiveTimeout: Duration(seconds: ConfigService().getApiTimeout()),
         headers: {
           if (_authToken != null) 'Authorization': 'Bearer $_authToken',
         },
@@ -355,7 +382,7 @@ class ApiService {
         audioFilePath: audioFilePath,
         message: message,
         messageLength: messageLength,
-      ).timeout(AppConstants.fileUploadTimeout);
+      ).timeout(Duration(seconds: ConfigService().getFileUploadTimeout()));
 
       final duration = DateTime.now().difference(startTime);
 
@@ -385,7 +412,7 @@ class ApiService {
       final response = await _client.decode(
         fileId: fileId,
         messageLength: messageLength,
-      ).timeout(AppConstants.fileUploadTimeout);
+      ).timeout(Duration(seconds: ConfigService().getFileUploadTimeout()));
 
       final duration = DateTime.now().difference(startTime);
 
@@ -414,7 +441,7 @@ class ApiService {
       final response = await _client.verify(
         fileId: fileId,
         message: message,
-      ).timeout(AppConstants.fileUploadTimeout);
+      ).timeout(Duration(seconds: ConfigService().getFileUploadTimeout()));
 
       final duration = DateTime.now().difference(startTime);
 
@@ -439,7 +466,7 @@ class ApiService {
 
       final response = await _client.analyze(
         fileId: fileId,
-      ).timeout(AppConstants.fileUploadTimeout);
+      ).timeout(Duration(seconds: ConfigService().getFileUploadTimeout()));
 
       final duration = DateTime.now().difference(startTime);
 
@@ -452,6 +479,21 @@ class ApiService {
       );
     } catch (e) {
       AppLogger.error('Analysis failed', e);
+      rethrow;
+    }
+  }
+
+  /// Download watermarked audio file
+  Future<void> downloadFile({
+    required String fileId,
+    required String savePath,
+  }) async {
+    try {
+      AppLogger.info('Downloading file: $fileId to $savePath');
+      await _client.downloadFile(fileId: fileId, savePath: savePath);
+      AppLogger.info('File downloaded successfully: $savePath');
+    } catch (e) {
+      AppLogger.error('File download failed', e);
       rethrow;
     }
   }

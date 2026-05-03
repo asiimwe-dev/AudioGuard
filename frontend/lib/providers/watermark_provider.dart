@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/local_service.dart';
 import '../services/smart_processing_service.dart';
 import '../services/audio_service.dart';
+import '../services/config_service.dart';
 import '../utils/constants.dart';
 import 'ui_provider.dart';
 
@@ -614,14 +615,31 @@ class AppSettings {
 }
 
 class SettingsNotifier extends StateNotifier<AppSettings> {
+  late StorageService _storage;
+
   SettingsNotifier() : super(AppSettings());
+
+  Future<void> initStorage(StorageService storage) async {
+    _storage = storage;
+    await loadSettings(storage);
+  }
 
   void setApiBaseUrl(String url) {
     state = state.copyWith(apiBaseUrl: url);
+    // Auto-save to ConfigService
+    ConfigService().setApiBaseUrl(url);
+    // Also persist to storage
+    if (_storage != null) {
+      _storage.setApiBaseUrl(url);
+    }
   }
 
   void setDefaultMode(WatermarkMode mode) {
     state = state.copyWith(defaultMode: mode);
+    // Auto-save to storage
+    if (_storage != null) {
+      _storage.setWatermarkMode(mode.name);
+    }
   }
 
   void setAutoSelectMode(bool enabled) {
@@ -630,10 +648,18 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   void setAuthToken(String? token) {
     state = state.copyWith(authToken: token);
+    // Auto-save to storage
+    if (token != null && _storage != null) {
+      _storage.saveApiToken(token);
+    }
   }
 
   void setDarkMode(bool enabled) {
     state = state.copyWith(darkModeEnabled: enabled);
+    // Auto-save to storage
+    if (_storage != null) {
+      _storage.setBool('dark_mode', enabled);
+    }
   }
 
   void setSaveHistory(bool enabled) {
@@ -662,6 +688,9 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
         authToken: token,
         darkModeEnabled: darkMode,
       );
+
+      // Also sync to ConfigService
+      ConfigService().setApiBaseUrl(url);
     } catch (e) {
       // Keep default settings if loading fails
     }
