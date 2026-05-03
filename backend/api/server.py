@@ -369,8 +369,10 @@ def create_app(debug: bool = False) -> FastAPI:
                         confidence = cnn_result.get('cnn_confidence', 0.0)
                         method = "cnn"
                         logger.info(f"CNN decode successful: message='{message}', confidence={confidence:.2%}")
+                    else:
+                        logger.warning(f"CNN returned unexpected type: {type(cnn_result)}")
                 except Exception as e:
-                    logger.warning(f"CNN decoding failed, falling back to classical: {str(e)}")
+                    logger.error(f"CNN decoding failed: {str(e)}", exc_info=True)
                     message = None
                     confidence = 0.0
             
