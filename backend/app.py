@@ -14,11 +14,15 @@ app = create_app(debug=False)
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+
+    # Look for the PORT environment variable, default to 8000 for local dev
+    port = int(os.environ.get("PORT", 8000))
 
     uvicorn.run(
         "app:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         workers=1,
         reload=False,
         log_level="info",
