@@ -67,75 +67,92 @@ class AudioGuardDecoder:
         bits_per_frame: int = 4,
     ) -> Tuple[float, float, float]:
         """
-        Estimate received energy for a single bit using per-frame voting.
+        Estimate received bit using ratio-based comparison to avoid bias.
 
-        For each of the bits_per_frame bins assigned to this bit:
-        - Extract magnitude values across all frames
-        - Compare against reference (adjacent bins)
-        - Use frame-level voting for robustness
+        KEY INSIGHT: Instead of absolute deltas, use RATIO comparison.
+        If bit=1: watermarked_bins / neighbor_bins > 1
+        If bit=0: watermarked_bins / neighbor_bins < 1
+        
+        This avoids the bias problem where all comparisons are positive.
 
         Args:
             magnitude: Magnitude spectrum (n_frames, n_freqs)
-            bit_idx: Index of bit to extract (0 to n_bits-1)
-            bit_sequence: Original bit sequence for reference
+            bit_idx: Index of bit to extract
+            bit_sequence: Original bit sequence (unused)
             start_bin: Starting frequency bin index
             bits_per_frame: Number of bins per bit
 
         Returns:
-            Tuple containing:
-                - avg_delta: Average delta across frames
-                - frame_agreement: How consistently frames agree on bit value
-                - voting_confidence: Confidence in the bit decision
+            Tuple: (avg_log_ratio, consistency, confidence)
+                - avg_log_ratio > 0 → bit likely "1"  
+                - avg_log_ratio < 0 → bit likely "0"
         """
         rng = np.random.RandomState(self.seed + bit_idx)
         n_frames, n_freqs = magnitude.shape
 
         # Generate pseudo-random bin indices (same as encoder)
         available_bins = np.arange(start_bin, n_freqs - bits_per_frame)
+        if len(available_bins) == 0:
+            return 0.0, 0.5, 0.5
+            
         bin_indices = rng.choice(
             available_bins,
             size=min(bits_per_frame, len(available_bins)),
             replace=False
         )
 
-        # **IMPROVED: Per-frame delta calculation**
-        frame_votes = []  # Record votes per frame
-        frame_deltas = []
+        # Extract watermarked bin magnitudes
+        watermarked_mags = magnitude[:, bin_indices]  # (n_frames, bits_per_frame)
+        
+        # Get ADJACENT neighbors (not other watermark bits)
+        # Adjacent bins are least likely to be modulated
+        neighbor_indices = []
+        for idx in bin_indices:
+            # Add immediately adjacent bins
+            if idx - 1 >= start_bin:
+                neighbor_indices.append(idx - 1)
+            if idx + 1 < n_freqs:
+                neighbor_indices.append(idx + 1)
+        
+        neighbor_indices = np.array(neighbor_indices)
+        
+        if len(neighbor_indices) == 0:
+            return 0.0, 0.5, 0.5
+        
+        neighbor_mags = magnitude[:, neighbor_indices]
+        
+        # Per-frame ratio analysis
+        frame_ratios = []  # Log ratios: log(watermarked / neighbor)
         
         for frame_idx in range(n_frames):
-            # Get watermarked bin magnitudes for this frame
-            watermarked_mags = magnitude[frame_idx, bin_indices]
-            watermarked_avg = np.mean(watermarked_mags)
+            w_mag = np.mean(watermarked_mags[frame_idx])
+            n_mag = np.mean(neighbor_mags[frame_idx])
             
-            # Calculate reference from surrounding bins
-            ref_mags = []
-            for bin_idx in bin_indices:
-                # Use bins 3-5 positions away as reference (avoid overlap)
-                for offset in [-5, -4, -3, 3, 4, 5]:
-                    ref_bin = bin_idx + offset
-                    if start_bin <= ref_bin < n_freqs:
-                        ref_mags.append(magnitude[frame_idx, ref_bin])
+            # Avoid division by zero
+            if n_mag > 1e-6:
+                ratio = w_mag / n_mag
+                log_ratio = np.log(ratio)  # Positive = amplified, Negative = dampened
+            else:
+                log_ratio = 0.0
             
-            ref_avg = np.mean(ref_mags) if ref_mags else 1.0
-            
-            # Delta: deviation from reference
-            delta = watermarked_avg - ref_avg
-            frame_deltas.append(delta)
-            
-            # Vote: positive delta = bit 1, negative delta = bit 0
-            frame_votes.append(1 if delta > 0 else 0)
+            frame_ratios.append(log_ratio)
         
-        frame_votes = np.array(frame_votes)
-        frame_deltas = np.array(frame_deltas)
+        frame_ratios = np.array(frame_ratios)
         
-        # Majority vote across frames
-        vote_ratio = np.sum(frame_votes) / len(frame_votes)
-        voting_agreement = max(vote_ratio, 1.0 - vote_ratio)
+        # Majority vote
+        positive_count = np.sum(frame_ratios > 0)
+        negative_count = np.sum(frame_ratios < 0)
+        total = positive_count + negative_count
         
-        # Average delta weighted by voting confidence
-        avg_delta = np.mean(frame_deltas)
-
-        return avg_delta, voting_agreement, voting_agreement
+        if total == 0:
+            return 0.0, 0.5, 0.5
+        
+        consistency = max(positive_count, negative_count) / total
+        
+        # Average log ratio
+        avg_log_ratio = np.mean(frame_ratios)
+        
+        return avg_log_ratio, consistency, consistency
 
     def _estimate_snr(
         self,
