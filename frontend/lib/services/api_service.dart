@@ -274,7 +274,6 @@ class ApiService {
         connectTimeout: AppConstants.apiTimeout,
         receiveTimeout: AppConstants.apiTimeout,
         headers: {
-          'Content-Type': 'application/json',
           if (_authToken != null) 'Authorization': 'Bearer $_authToken',
         },
       ),
