@@ -65,8 +65,15 @@ app_state = {
 }
 
 # Create persistent storage for encoded files
-STORAGE_DIR = Path(os.environ.get("AUDIOGUARD_STORAGE", "/app/storage")) / "audioguard_storage"
-STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+# Use /tmp for Render Free Tier (read-only /app), fallback to configured path if available
+_storage_path = os.environ.get("AUDIOGUARD_STORAGE", "/tmp/audioguard_storage")
+STORAGE_DIR = Path(_storage_path)
+try:
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+except (PermissionError, OSError):
+    # If primary path fails, use /tmp as fallback
+    STORAGE_DIR = Path("/tmp/audioguard_storage")
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def create_app(debug: bool = False) -> FastAPI:
