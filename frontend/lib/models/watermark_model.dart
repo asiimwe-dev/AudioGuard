@@ -90,6 +90,9 @@ class EncodingResult {
   final int encodedFileSize;
   final DateTime timestamp;
   final bool success;
+  final double? originalDuration; // Duration in seconds
+  final int? sampleRate; // Sample rate in Hz
+  final int? messageLength; // Length of embedded message
 
   EncodingResult({
     String? id,
@@ -102,6 +105,9 @@ class EncodingResult {
     required this.encodedFileSize,
     DateTime? timestamp,
     bool? success,
+    this.originalDuration,
+    this.sampleRate,
+    this.messageLength,
   })  : id = id ?? const Uuid().v4(),
         timestamp = timestamp ?? DateTime.now(),
         success = success ?? (encodedFilePath.isNotEmpty || fileId != null);

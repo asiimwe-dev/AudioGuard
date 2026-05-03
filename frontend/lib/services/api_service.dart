@@ -13,6 +13,9 @@ class EncodeResponse {
   final double embeddingStrength;
   final int processingTimeMs;
   final String? message;
+  final double? originalDuration;
+  final int? sampleRate;
+  final int? messageLength;
 
   EncodeResponse({
     required this.success,
@@ -20,6 +23,9 @@ class EncodeResponse {
     required this.embeddingStrength,
     required this.processingTimeMs,
     this.message,
+    this.originalDuration,
+    this.sampleRate,
+    this.messageLength,
   });
 
   factory EncodeResponse.fromJson(Map<String, dynamic> json) => EncodeResponse(
@@ -28,6 +34,11 @@ class EncodeResponse {
         embeddingStrength: (json['embedding_strength'] as num).toDouble(),
         processingTimeMs: (json['processing_time_ms'] as num).toInt(),
         message: json['message'] as String?,
+        originalDuration: json['original_duration'] != null 
+          ? (json['original_duration'] as num).toDouble() 
+          : null,
+        sampleRate: json['sample_rate'] as int?,
+        messageLength: json['message_length'] as int?,
       );
 }
 
