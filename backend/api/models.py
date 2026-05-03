@@ -51,6 +51,9 @@ class DecodeRequest(BaseModel):
     confidence_threshold: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Confidence threshold for acceptance"
     )
+    max_message_length: int = Field(
+        default=256, ge=1, le=512, description="Maximum message length to search for (1-512)"
+    )
 
 
 class DecodeResponse(BaseModel):
@@ -79,6 +82,10 @@ class VerifyRequest(BaseModel):
     """Request body for watermark verification endpoint."""
 
     file_id: str = Field(..., description="File ID from encoding response")
+    expected_message: str = Field(..., description="Expected message to verify")
+    max_message_length: int = Field(
+        default=256, ge=1, le=512, description="Maximum message length to search for (1-512)"
+    )
 
 
 class VerifyResponse(BaseModel):
@@ -96,6 +103,9 @@ class AnalyzeRequest(BaseModel):
     """Request body for audio analysis endpoint."""
 
     file_id: Optional[str] = Field(None, description="File ID from encoding response")
+    max_message_length: int = Field(
+        default=256, ge=1, le=512, description="Maximum message length to search for (1-512)"
+    )
 
 
 class AnalyzeResponse(BaseModel):

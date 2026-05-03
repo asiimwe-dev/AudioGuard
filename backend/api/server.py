@@ -297,8 +297,9 @@ def create_app(debug: bool = False) -> FastAPI:
                 except Exception as e:
                     logger.warning(f"Decode failed with message_length={message_length}: {str(e)}")
             else:
-                # Try different message lengths (4-32 chars)
-                for try_length in range(4, 33):
+                # Try different message lengths (min 1 to max_message_length)
+                max_len = request_data.max_message_length
+                for try_length in range(1, max_len + 1):
                     try:
                         result = decoder.decode(str(input_wav), message_length=try_length)
                         if isinstance(result, dict):
@@ -411,7 +412,8 @@ def create_app(debug: bool = False) -> FastAPI:
                     # Fallback to classical
                     decoder = AudioGuardDecoder()
                     # Try different message lengths to detect watermark
-                    for try_length in range(4, 33):
+                    max_len = request_data.max_message_length
+                    for try_length in range(1, max_len + 1):
                         try:
                             result = decoder.decode(str(input_wav), message_length=try_length)
                             if isinstance(result, dict):
@@ -430,7 +432,8 @@ def create_app(debug: bool = False) -> FastAPI:
             else:
                 decoder = AudioGuardDecoder()
                 # Try different message lengths to detect watermark
-                for try_length in range(4, 33):
+                max_len = request_data.max_message_length
+                for try_length in range(1, max_len + 1):
                     try:
                         result = decoder.decode(str(input_wav), message_length=try_length)
                         if isinstance(result, dict):
@@ -500,7 +503,8 @@ def create_app(debug: bool = False) -> FastAPI:
             confidence = 0.0
             snr = None
             
-            for try_length in range(4, 33):
+            max_len = request_data.max_message_length
+            for try_length in range(1, max_len + 1):
                 try:
                     result = decoder.decode(str(input_wav), message_length=try_length)
                     if isinstance(result, dict):

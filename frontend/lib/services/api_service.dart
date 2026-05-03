@@ -186,6 +186,7 @@ class AudioGuardApiClient {
         'file_id': fileId,
         'use_cnn': false,
         'confidence_threshold': 0.5,
+        'max_message_length': messageLength ?? AppConstants.maxMessageLength,
       };
 
       final response = await dio.post(
@@ -212,6 +213,7 @@ class AudioGuardApiClient {
       final requestBody = {
         'file_id': fileId,
         'expected_message': message,
+        'max_message_length': AppConstants.maxMessageLength,
       };
 
       final response = await dio.post(
@@ -236,6 +238,7 @@ class AudioGuardApiClient {
     try {
       final requestBody = {
         'file_id': fileId,
+        'max_message_length': AppConstants.maxMessageLength,
       };
 
       final response = await dio.post(
@@ -335,7 +338,6 @@ class ApiService {
       return true;
     } catch (e) {
       AppLogger.error('Health check failed', e);
-      print('HEALTH CHECK ERROR: $e');
       return false;
     }
   }
