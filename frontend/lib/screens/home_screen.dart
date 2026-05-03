@@ -456,6 +456,7 @@ class _ActionGrid extends ConsumerWidget {
         description: 'Add watermark',
         color: const Color(0xFF6200EE),
         onTap: (ref) {
+          ref.read(selectedAudioFileProvider.notifier).state = null;
           ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.encode;
         },
       ),
@@ -465,6 +466,7 @@ class _ActionGrid extends ConsumerWidget {
         description: 'Extract watermark',
         color: const Color(0xFF03DAC6),
         onTap: (ref) {
+          ref.read(selectedAudioFileProvider.notifier).state = null;
           ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.decode;
         },
       ),
@@ -474,6 +476,7 @@ class _ActionGrid extends ConsumerWidget {
         description: 'Check authenticity',
         color: const Color(0xFF4CAF50),
         onTap: (ref) {
+          ref.read(selectedAudioFileProvider.notifier).state = null;
           ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.verify;
         },
       ),
@@ -483,6 +486,7 @@ class _ActionGrid extends ConsumerWidget {
         description: 'Audio analysis',
         color: const Color(0xFFFFC107),
         onTap: (ref) {
+          ref.read(selectedAudioFileProvider.notifier).state = null;
           ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.analyze;
         },
       ),
