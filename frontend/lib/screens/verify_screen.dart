@@ -24,10 +24,13 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     super.initState();
     _messageController = TextEditingController();
 
-    // Clear selection when entering verify screen
+    // Only clear selection and reset if no file is already selected
+    // (to allow navigation from file library with pre-selected file)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(selectedAudioFileProvider.notifier).state = null;
-      ref.read(verificationProvider.notifier).reset();
+      final currentPath = ref.read(selectedAudioFileProvider);
+      if (currentPath == null) {
+        ref.read(verificationProvider.notifier).reset();
+      }
     });
   }
 

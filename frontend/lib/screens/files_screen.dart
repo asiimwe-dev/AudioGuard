@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/audio_player_widget.dart';
-import '../utils/logger.dart';
 
 /// Files library screen - browse and manage encoded files
 class FilesScreen extends ConsumerStatefulWidget {
@@ -250,17 +249,15 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   }
 
   void _onVerify(dynamic file) {
-    AppLogger.info('Verifying file: ${file.id}');
-    // Navigate to verify screen with this file
-    // ref.read(selectedLibraryFileProvider.notifier).state = file.id;
-    // ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.verify;
+    // Set the selected file and navigate to verify
+    ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+    ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.verify;
   }
 
   void _onAnalyze(dynamic file) {
-    AppLogger.info('Analyzing file: ${file.id}');
-    // Navigate to analyze screen with this file
-    // ref.read(selectedLibraryFileProvider.notifier).state = file.id;
-    // ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.analyze;
+    // Set the selected file and navigate to analyze
+    ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+    ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.analyze;
   }
 
   void _onDelete(dynamic file) {

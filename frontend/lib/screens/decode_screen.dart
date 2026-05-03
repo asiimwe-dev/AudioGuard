@@ -22,11 +22,13 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
     super.initState();
     _messageLengthController = TextEditingController();
     
-    // Clear the global selection when entering the decode screen 
-    // to ensure the user supplies a fresh file as requested.
+    // Only clear selection if no file is already selected
+    // (to allow navigation from file library with pre-selected file)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(selectedAudioFileProvider.notifier).state = null;
-      ref.read(decodingProvider.notifier).reset();
+      final currentPath = ref.read(selectedAudioFileProvider);
+      if (currentPath == null) {
+        ref.read(decodingProvider.notifier).reset();
+      }
     });
   }
 
@@ -71,6 +73,41 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
     if (file != null) {
       ref.read(selectedAudioFileProvider.notifier).state = file.path;
     }
+  }
+
+  Future<void> _pickFromLibrary() async {
+    final encodedFiles = await ref.read(encodedFilesLibraryProvider.future);
+    if (!mounted || encodedFiles.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No files in library')),
+        );
+      }
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => ListView.builder(
+        itemCount: encodedFiles.length,
+        itemBuilder: (context, index) {
+          final file = encodedFiles[index];
+          return ListTile(
+            leading: const Icon(Icons.audio_file),
+            title: Text(file.filename, maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text(
+              'Message: ${file.message} • ${file.fileSizeString}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: () {
+              ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+              Navigator.pop(context);
+            },
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -155,11 +192,22 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
         child: Column(
           children: [
             if (audioPath == null)
-              OutlinedButton.icon(
-                onPressed: _pickAudioFile,
-                icon: const Icon(Icons.audio_file),
-                label: const Text('Select Audio File'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              Column(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _pickAudioFile,
+                    icon: const Icon(Icons.audio_file),
+                    label: const Text('Select from Phone Storage'),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _pickFromLibrary,
+                    icon: const Icon(Icons.folder_open),
+                    label: const Text('Select from Library'),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                  ),
+                ],
               )
             else ...[
               ListTile(

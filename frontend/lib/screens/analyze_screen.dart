@@ -18,10 +18,13 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
   @override
   void initState() {
     super.initState();
-    // Clear selection when entering analyze screen as requested
+    // Only clear selection if no file is already selected
+    // (to allow navigation from file library with pre-selected file)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(selectedAudioFileProvider.notifier).state = null;
-      ref.read(analysisProvider.notifier).reset();
+      final currentPath = ref.read(selectedAudioFileProvider);
+      if (currentPath == null) {
+        ref.read(analysisProvider.notifier).reset();
+      }
     });
   }
 
