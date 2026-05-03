@@ -132,17 +132,18 @@ class HealthResponse {
 /// REST API Client for AudioGuard Backend (no code generation)
 class AudioGuardApiClient {
   final Dio dio;
-  final String baseUrl;
 
   AudioGuardApiClient({
     required this.dio,
-    required this.baseUrl,
   });
+
+  /// Get current base URL from Dio
+  String get _baseUrl => dio.options.baseUrl;
 
   /// Check API health
   Future<HealthResponse> getHealth() async {
     try {
-      final response = await dio.get('$baseUrl${AppConstants.healthEndpoint}');
+      final response = await dio.get('${AppConstants.healthEndpoint}');
       return HealthResponse.fromJson(response.data);
     } catch (e) {
       throw ProcessingError(
@@ -244,7 +245,7 @@ class AudioGuardApiClient {
       };
 
       final response = await dio.post(
-        '$baseUrl${AppConstants.decodeEndpoint}',
+        AppConstants.decodeEndpoint,
         data: requestBody,
       );
 
@@ -272,7 +273,7 @@ class AudioGuardApiClient {
       };
 
       final response = await dio.post(
-        '$baseUrl${AppConstants.verifyEndpoint}',
+        AppConstants.verifyEndpoint,
         data: requestBody,
       );
 
@@ -298,7 +299,7 @@ class AudioGuardApiClient {
       };
 
       final response = await dio.post(
-        '$baseUrl${AppConstants.analyzeEndpoint}',
+        AppConstants.analyzeEndpoint,
         data: requestBody,
       );
 
@@ -319,7 +320,7 @@ class AudioGuardApiClient {
   }) async {
     try {
       final response = await dio.get(
-        '$baseUrl/api/v1/download/$fileId',
+        '/api/v1/download/$fileId',
         options: Options(
           responseType: ResponseType.bytes,
         ),
@@ -397,7 +398,7 @@ class ApiService {
       ),
     );
 
-    _client = AudioGuardApiClient(dio: _dio, baseUrl: _baseUrl);
+    _client = AudioGuardApiClient(dio: _dio);
   }
 
   /// Set authentication token
