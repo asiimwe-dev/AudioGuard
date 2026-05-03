@@ -37,6 +37,26 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     super.dispose();
   }
 
+  String _getUserFriendlyErrorMessage(Object error) {
+    final errorString = error.toString();
+    
+    if (errorString.contains('FILE_NOT_FOUND')) {
+      return 'Audio file not found. Please select a valid file.';
+    } else if (errorString.contains('EMPTY_FILE')) {
+      return 'The audio file is empty.';
+    } else if (errorString.contains('INVALID_MESSAGE')) {
+      return 'The message must be 1-255 characters.';
+    } else if (errorString.contains('bad response') && errorString.contains('400')) {
+      return 'The audio file format is not supported.';
+    } else if (errorString.contains('SocketException') || errorString.contains('Connection refused')) {
+      return 'Cannot connect to the server. Check your internet connection.';
+    } else if (errorString.contains('TimeoutException') || errorString.contains('timeout')) {
+      return 'The request took too long. Please try again.';
+    }
+    
+    return 'Failed to verify watermark. Please try again.';
+  }
+
   Future<void> _pickAudioFile() async {
     final audioService = ref.read(audioServiceProvider);
     final file = await audioService.pickAudioFile();
@@ -119,7 +139,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
 
             verifyState.result.when(
               data: (result) => _buildCertificate(result, authorIdentity),
-              error: (err, _) => Text('Error: $err', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              error: (err, _) => Text('Error: ${_getUserFriendlyErrorMessage(err)}', style: TextStyle(color: Theme.of(context).colorScheme.error)),
               loading: () => const SizedBox.shrink(),
             ),
           ],

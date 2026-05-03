@@ -322,7 +322,31 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
     );
   }
 
+  String _getUserFriendlyErrorMessage(Object error) {
+    final errorString = error.toString();
+    
+    if (errorString.contains('FILE_NOT_FOUND') || errorString.contains('File does not exist')) {
+      return 'The audio file could not be found. Please select a file and try again.';
+    } else if (errorString.contains('EMPTY_FILE')) {
+      return 'The audio file is empty. Please select a valid audio file.';
+    } else if (errorString.contains('INVALID_MESSAGE')) {
+      return 'The message must be between 1 and 255 characters.';
+    } else if (errorString.contains('bad response') && errorString.contains('400')) {
+      return 'The audio file format is not supported or is invalid. Please use a different file.';
+    } else if (errorString.contains('SocketException') || errorString.contains('Connection refused')) {
+      return 'Cannot reach the backend server. Please check your internet connection.';
+    } else if (errorString.contains('TimeoutException') || errorString.contains('timeout')) {
+      return 'The request took too long. Please try again.';
+    } else if (errorString.contains('HEALTH_CHECK_FAILED')) {
+      return 'Cannot connect to the backend server. Please check your network connection.';
+    } else {
+      return 'Failed to encode audio. Please try again.';
+    }
+  }
+
   Widget _buildErrorCard(ThemeData theme, Object error) {
+    final userMessage = _getUserFriendlyErrorMessage(error);
+    
     return Card(
       color: theme.colorScheme.errorContainer,
       child: Padding(
@@ -333,7 +357,7 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'Failed to encode: $error',
+                userMessage,
                 style: TextStyle(color: theme.colorScheme.onErrorContainer),
               ),
             ),

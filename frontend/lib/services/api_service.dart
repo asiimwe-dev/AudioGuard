@@ -160,6 +160,35 @@ class AudioGuardApiClient {
     int? messageLength,
   }) async {
     try {
+      // Validate file exists
+      final file = File(audioFilePath);
+      if (!await file.exists()) {
+        throw ProcessingError(
+          message: 'Audio file not found',
+          code: 'FILE_NOT_FOUND',
+          originalError: 'File does not exist at: $audioFilePath',
+        );
+      }
+
+      // Validate file is not empty
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        throw ProcessingError(
+          message: 'Audio file is empty',
+          code: 'EMPTY_FILE',
+          originalError: 'File size is 0 bytes',
+        );
+      }
+
+      // Validate message
+      if (message.isEmpty || message.length > 255) {
+        throw ProcessingError(
+          message: 'Message must be 1-255 characters',
+          code: 'INVALID_MESSAGE',
+          originalError: 'Message length: ${message.length}',
+        );
+      }
+
       final formData = FormData.fromMap({
         'audio_file': await MultipartFile.fromFile(audioFilePath),
         'message': message,

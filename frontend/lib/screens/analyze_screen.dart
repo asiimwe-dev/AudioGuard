@@ -33,6 +33,24 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
     }
   }
 
+  String _getUserFriendlyErrorMessage(Object error) {
+    final errorString = error.toString();
+    
+    if (errorString.contains('FILE_NOT_FOUND')) {
+      return 'Audio file not found. Please select a valid file.';
+    } else if (errorString.contains('EMPTY_FILE')) {
+      return 'The audio file is empty.';
+    } else if (errorString.contains('bad response') && errorString.contains('400')) {
+      return 'The audio file format is not supported.';
+    } else if (errorString.contains('SocketException') || errorString.contains('Connection refused')) {
+      return 'Cannot connect to the server. Check your internet connection.';
+    } else if (errorString.contains('TimeoutException') || errorString.contains('timeout')) {
+      return 'The request took too long. Please try again.';
+    }
+    
+    return 'Failed to analyze audio. Please try again.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final audioPath = ref.watch(selectedAudioFileProvider);
@@ -191,7 +209,7 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
                             const SizedBox(height: 8),
                             Text(error is ProcessingError && error.details != null
                                 ? error.details!
-                                : error.toString()),
+                                : _getUserFriendlyErrorMessage(error)),
                           ],
                         ),
                       ),
