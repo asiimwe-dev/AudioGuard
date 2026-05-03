@@ -187,7 +187,7 @@ class AudioGuardApiClient {
       final requestBody = {
         'file_id': fileId,
         'use_cnn': false,
-        'confidence_threshold': 0.5,
+        'confidence_threshold': ConfigService().getDecodeConfidenceThreshold(),
         'max_message_length': messageLength ?? AppConstants.maxMessageLength,
       };
 
@@ -215,6 +215,7 @@ class AudioGuardApiClient {
       final requestBody = {
         'file_id': fileId,
         'expected_message': message,
+        'confidence_threshold': ConfigService().getVerifyConfidenceThreshold(),
         'max_message_length': AppConstants.maxMessageLength,
       };
 
@@ -240,6 +241,7 @@ class AudioGuardApiClient {
     try {
       final requestBody = {
         'file_id': fileId,
+        'confidence_threshold': ConfigService().getAnalyzeConfidenceThreshold(),
         'max_message_length': AppConstants.maxMessageLength,
       };
 

@@ -381,12 +381,14 @@ def create_app(debug: bool = False) -> FastAPI:
 
         **Parameters:**
         - **file_id**: File ID from encoding response
+        - **confidence_threshold**: Minimum confidence to accept watermark (default 0.7)
 
         **Returns:**
         - **watermark_detected**: True if watermark is present
         - **confidence**: Detection confidence (0-1)
         """
         file_id = request_data.file_id
+        confidence_threshold = request_data.confidence_threshold
         start_time = time.time()
         temp_dir = tempfile.mkdtemp()
 
@@ -407,7 +409,7 @@ def create_app(debug: bool = False) -> FastAPI:
                 try:
                     detector = CNNWatermarkDecoder()
                     _, confidence = detector.decode(str(input_wav))
-                    watermark_detected = confidence > 0.5
+                    watermark_detected = confidence > confidence_threshold
                 except Exception:
                     # Fallback to classical
                     decoder = AudioGuardDecoder()
@@ -478,6 +480,7 @@ def create_app(debug: bool = False) -> FastAPI:
 
         **Parameters:**
         - **file_id**: File ID from encoding response
+        - **confidence_threshold**: Minimum confidence to accept watermark (default 0.5)
 
         **Returns:**
         - **watermark_present**: Whether watermark is detected
@@ -485,6 +488,7 @@ def create_app(debug: bool = False) -> FastAPI:
         - **spectral_info**: Spectral analysis information
         """
         file_id = request_data.file_id
+        confidence_threshold = request_data.confidence_threshold
         start_time = time.time()
         temp_dir = tempfile.mkdtemp()
 
@@ -529,10 +533,10 @@ def create_app(debug: bool = False) -> FastAPI:
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
 
-            # Validate watermark: only report if message contains mostly printable characters
+            # Validate watermark: only report if message contains mostly printable characters AND meets confidence threshold
             # This prevents false positives from random bit patterns  
             watermark_present = False
-            if message is not None:
+            if message is not None and confidence >= confidence_threshold:
                 # Check if at least 70% of characters are printable/ASCII
                 printable_count = sum(1 for c in str(message) if 32 <= ord(c) <= 126)
                 if len(message) > 0:
