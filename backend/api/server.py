@@ -89,7 +89,8 @@ def create_app(debug: bool = False) -> FastAPI:
     # Add middleware
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     # Configure CORS based on environment
-    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(",")
+    # For production with mobile clients, allow all origins to support cross-domain requests
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
