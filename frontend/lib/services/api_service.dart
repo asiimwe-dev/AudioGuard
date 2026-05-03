@@ -110,19 +110,22 @@ class AnalyzeResponse {
 class HealthResponse {
   final String status;
   final String version;
-  final Map<String, dynamic> services;
+  final List<dynamic> modelsAvailable;
+  final double uptimeSeconds;
 
   HealthResponse({
     required this.status,
     required this.version,
-    required this.services,
+    required this.modelsAvailable,
+    required this.uptimeSeconds,
   });
 
   factory HealthResponse.fromJson(Map<String, dynamic> json) =>
       HealthResponse(
         status: json['status'] as String,
         version: json['version'] as String,
-        services: json['services'] as Map<String, dynamic>,
+        modelsAvailable: json['models_available'] as List<dynamic>,
+        uptimeSeconds: (json['uptime_seconds'] as num).toDouble(),
       );
 }
 
