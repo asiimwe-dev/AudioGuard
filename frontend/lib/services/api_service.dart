@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import '../utils/circuit_breaker.dart';
 import './config_service.dart';
 
 /// API Response Models
@@ -143,20 +144,43 @@ class HealthResponse {
 /// REST API Client for AudioGuard Backend (no code generation)
 class AudioGuardApiClient {
   final Dio dio;
+  
+  // Circuit breakers for each endpoint
+  late final CircuitBreaker _healthBreaker;
+  late final CircuitBreaker _encodeBreaker;
+  late final CircuitBreaker _decodeBreaker;
+  late final CircuitBreaker _verifyBreaker;
+  late final CircuitBreaker _analyzeBreaker;
 
   AudioGuardApiClient({
     required this.dio,
-  });
+  }) {
+    _healthBreaker = CircuitBreaker(name: 'health');
+    _encodeBreaker = CircuitBreaker(name: 'encode');
+    _decodeBreaker = CircuitBreaker(name: 'decode');
+    _verifyBreaker = CircuitBreaker(name: 'verify');
+    _analyzeBreaker = CircuitBreaker(name: 'analyze');
+  }
 
   /// Get current base URL from Dio
   String get _baseUrl => dio.options.baseUrl;
 
   /// Check API health
   Future<HealthResponse> getHealth() async {
+    if (!_healthBreaker.canAttempt()) {
+      throw ProcessingError(
+        message: 'Health check temporarily unavailable (circuit open)',
+        code: 'HEALTH_CHECK_FAILED',
+        originalError: _healthBreaker.toString(),
+      );
+    }
+    
     try {
       final response = await dio.get('${AppConstants.healthEndpoint}');
+      _healthBreaker.recordSuccess();
       return HealthResponse.fromJson(response.data);
     } catch (e) {
+      _healthBreaker.recordFailure();
       throw ProcessingError(
         message: 'Health check failed',
         code: 'HEALTH_CHECK_FAILED',
@@ -171,6 +195,14 @@ class AudioGuardApiClient {
     required String message,
     int? messageLength,
   }) async {
+    if (!_encodeBreaker.canAttempt()) {
+      throw ProcessingError(
+        message: 'Encoding temporarily unavailable (backend recovering)',
+        code: 'ENCODING_FAILED',
+        originalError: _encodeBreaker.toString(),
+      );
+    }
+    
     try {
       // Validate file exists
       final file = File(audioFilePath);
@@ -215,6 +247,7 @@ class AudioGuardApiClient {
       );
 
       if (response.statusCode == null || response.statusCode! < 200 || response.statusCode! >= 300) {
+        _encodeBreaker.recordFailure();
         throw ProcessingError(
           message: 'Encoding failed with status ${response.statusCode}: ${response.data}',
           code: 'ENCODING_FAILED',
@@ -223,6 +256,7 @@ class AudioGuardApiClient {
       }
 
       if (response.data == null) {
+        _encodeBreaker.recordFailure();
         throw ProcessingError(
           message: 'Encoding failed: empty response',
           code: 'ENCODING_FAILED',
@@ -230,10 +264,14 @@ class AudioGuardApiClient {
         );
       }
 
-      return EncodeResponse.fromJson(response.data as Map<String, dynamic>);
+      final result = EncodeResponse.fromJson(response.data as Map<String, dynamic>);
+      _encodeBreaker.recordSuccess();
+      return result;
     } on ProcessingError {
+      _encodeBreaker.recordFailure();
       rethrow;
     } catch (e) {
+      _encodeBreaker.recordFailure();
       throw ProcessingError(
         message: 'Encoding failed: $e',
         code: 'ENCODING_FAILED',
@@ -247,6 +285,14 @@ class AudioGuardApiClient {
     required String fileId,
     int? messageLength,
   }) async {
+    if (!_decodeBreaker.canAttempt()) {
+      throw ProcessingError(
+        message: 'Decoding temporarily unavailable (backend recovering)',
+        code: 'DECODING_FAILED',
+        originalError: _decodeBreaker.toString(),
+      );
+    }
+    
     try {
       final requestBody = {
         'file_id': fileId,
@@ -260,8 +306,14 @@ class AudioGuardApiClient {
         data: requestBody,
       );
 
-      return DecodeResponse.fromJson(response.data);
+      final result = DecodeResponse.fromJson(response.data);
+      _decodeBreaker.recordSuccess();
+      return result;
+    } on ProcessingError {
+      _decodeBreaker.recordFailure();
+      rethrow;
     } catch (e) {
+      _decodeBreaker.recordFailure();
       throw ProcessingError(
         message: 'Decoding failed',
         code: 'DECODING_FAILED',
@@ -275,6 +327,14 @@ class AudioGuardApiClient {
     required String fileId,
     required String message,
   }) async {
+    if (!_verifyBreaker.canAttempt()) {
+      throw ProcessingError(
+        message: 'Verification temporarily unavailable (backend recovering)',
+        code: 'VERIFICATION_FAILED',
+        originalError: _verifyBreaker.toString(),
+      );
+    }
+    
     try {
       final requestBody = {
         'file_id': fileId,
@@ -288,8 +348,14 @@ class AudioGuardApiClient {
         data: requestBody,
       );
 
-      return VerifyResponse.fromJson(response.data);
+      final result = VerifyResponse.fromJson(response.data);
+      _verifyBreaker.recordSuccess();
+      return result;
+    } on ProcessingError {
+      _verifyBreaker.recordFailure();
+      rethrow;
     } catch (e) {
+      _verifyBreaker.recordFailure();
       throw ProcessingError(
         message: 'Verification failed',
         code: 'VERIFICATION_FAILED',
@@ -302,6 +368,14 @@ class AudioGuardApiClient {
   Future<AnalyzeResponse> analyze({
     required String fileId,
   }) async {
+    if (!_analyzeBreaker.canAttempt()) {
+      throw ProcessingError(
+        message: 'Analysis temporarily unavailable (backend recovering)',
+        code: 'ANALYSIS_FAILED',
+        originalError: _analyzeBreaker.toString(),
+      );
+    }
+    
     try {
       final requestBody = {
         'file_id': fileId,
@@ -314,8 +388,14 @@ class AudioGuardApiClient {
         data: requestBody,
       );
 
-      return AnalyzeResponse.fromJson(response.data);
+      final result = AnalyzeResponse.fromJson(response.data);
+      _analyzeBreaker.recordSuccess();
+      return result;
+    } on ProcessingError {
+      _analyzeBreaker.recordFailure();
+      rethrow;
     } catch (e) {
+      _analyzeBreaker.recordFailure();
       throw ProcessingError(
         message: 'Analysis failed',
         code: 'ANALYSIS_FAILED',
