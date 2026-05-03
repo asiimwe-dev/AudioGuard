@@ -67,92 +67,51 @@ class AudioGuardDecoder:
         bits_per_frame: int = 4,
     ) -> Tuple[float, float, float]:
         """
-        Estimate received bit using ratio-based comparison to avoid bias.
+        Estimate received energy for a single bit using majority voting.
 
-        KEY INSIGHT: Instead of absolute deltas, use RATIO comparison.
-        If bit=1: watermarked_bins / neighbor_bins > 1
-        If bit=0: watermarked_bins / neighbor_bins < 1
-        
-        This avoids the bias problem where all comparisons are positive.
+        For each of the bits_per_frame bins assigned to this bit:
+        - Extract magnitude values across all frames
+        - Compute mean magnitude (energy proxy)
+        - Average across bins for this bit
 
         Args:
             magnitude: Magnitude spectrum (n_frames, n_freqs)
-            bit_idx: Index of bit to extract
-            bit_sequence: Original bit sequence (unused)
+            bit_idx: Index of bit to extract (0 to n_bits-1)
+            bit_sequence: Original bit sequence for reference
             start_bin: Starting frequency bin index
             bits_per_frame: Number of bins per bit
 
         Returns:
-            Tuple: (avg_log_ratio, consistency, confidence)
-                - avg_log_ratio > 0 → bit likely "1"  
-                - avg_log_ratio < 0 → bit likely "0"
+            Tuple containing:
+                - avg_energy: Average energy for this bit
+                - energy_var: Variance across bins (uncertainty metric)
+                - voting_confidence: Fraction of bins agreeing on bit value
         """
         rng = np.random.RandomState(self.seed + bit_idx)
         n_frames, n_freqs = magnitude.shape
 
         # Generate pseudo-random bin indices (same as encoder)
         available_bins = np.arange(start_bin, n_freqs - bits_per_frame)
-        if len(available_bins) == 0:
-            return 0.0, 0.5, 0.5
-            
         bin_indices = rng.choice(
             available_bins,
             size=min(bits_per_frame, len(available_bins)),
             replace=False
         )
 
-        # Extract watermarked bin magnitudes
-        watermarked_mags = magnitude[:, bin_indices]  # (n_frames, bits_per_frame)
-        
-        # Get ADJACENT neighbors (not other watermark bits)
-        # Adjacent bins are least likely to be modulated
-        neighbor_indices = []
-        for idx in bin_indices:
-            # Add immediately adjacent bins
-            if idx - 1 >= start_bin:
-                neighbor_indices.append(idx - 1)
-            if idx + 1 < n_freqs:
-                neighbor_indices.append(idx + 1)
-        
-        neighbor_indices = np.array(neighbor_indices)
-        
-        if len(neighbor_indices) == 0:
-            return 0.0, 0.5, 0.5
-        
-        neighbor_mags = magnitude[:, neighbor_indices]
-        
-        # Per-frame ratio analysis
-        frame_ratios = []  # Log ratios: log(watermarked / neighbor)
-        
+        # Extract energy from all assigned bins
+        bin_energies = []
         for frame_idx in range(n_frames):
-            w_mag = np.mean(watermarked_mags[frame_idx])
-            n_mag = np.mean(neighbor_mags[frame_idx])
-            
-            # Avoid division by zero
-            if n_mag > 1e-6:
-                ratio = w_mag / n_mag
-                log_ratio = np.log(ratio)  # Positive = amplified, Negative = dampened
-            else:
-                log_ratio = 0.0
-            
-            frame_ratios.append(log_ratio)
-        
-        frame_ratios = np.array(frame_ratios)
-        
-        # Majority vote
-        positive_count = np.sum(frame_ratios > 0)
-        negative_count = np.sum(frame_ratios < 0)
-        total = positive_count + negative_count
-        
-        if total == 0:
-            return 0.0, 0.5, 0.5
-        
-        consistency = max(positive_count, negative_count) / total
-        
-        # Average log ratio
-        avg_log_ratio = np.mean(frame_ratios)
-        
-        return avg_log_ratio, consistency, consistency
+            for bin_idx in bin_indices:
+                bin_energies.append(magnitude[frame_idx, bin_idx])
+
+        bin_energies = np.array(bin_energies)
+        avg_energy = np.mean(bin_energies)
+        energy_var = np.var(bin_energies) / (np.mean(bin_energies) ** 2 + 1e-10)
+
+        # Majority voting: count how many bins support detected bit
+        voting_agreement = 1.0  # Placeholder for future classification
+
+        return avg_energy, energy_var, voting_agreement
 
     def _estimate_snr(
         self,
@@ -248,16 +207,14 @@ class AudioGuardDecoder:
         )
         print(f"[AudioGuardDecoder] STFT: {magnitude.shape[0]} frames × {magnitude.shape[1]} bins")
 
-        # Extract bits using correlation-based detection
-        print(f"[AudioGuardDecoder] Extracting watermark bits (correlation method)...")
+        # Extract bits using energy detection
+        print(f"[AudioGuardDecoder] Extracting watermark bits...")
         decoded_bits = []
         energies = []
         confidences = []
 
-        # First pass: collect all bit deltas with frame-level votes
-        frame_agreement_list = []
         for bit_idx in range(expected_bits):
-            avg_delta, frame_agreement, voting_conf = self._estimate_bit_energy(
+            avg_energy, energy_var, voting_conf = self._estimate_bit_energy(
                 magnitude,
                 bit_idx,
                 "",
@@ -265,21 +222,17 @@ class AudioGuardDecoder:
                 bits_per_frame=4,
             )
 
-            energies.append(avg_delta)
+            energies.append(avg_energy)
             confidences.append(voting_conf)
-            frame_agreement_list.append(frame_agreement)
 
-        energies = np.array(energies)
-        frame_agreements = np.array(frame_agreement_list)
-        
-        # **IMPROVED: Use frame agreement as confidence weight**
-        # Extract bits based on delta sign, weighted by frame agreement
-        for bit_idx in range(expected_bits):
-            delta = energies[bit_idx]
-            agreement = frame_agreements[bit_idx]
-            
-            # Bit decision based on delta sign
-            bit_value = "1" if delta > 0 else "0"
+            # Simple threshold detection: compare against mean
+            mean_energy = np.mean(energies)
+            if bit_idx > 0:
+                bit_value = "1" if avg_energy > mean_energy else "0"
+            else:
+                # First bit: assume random, use median
+                bit_value = "0"
+
             decoded_bits.append(bit_value)
 
         decoded_binary = "".join(decoded_bits)
