@@ -259,6 +259,9 @@ def create_app(debug: bool = False) -> FastAPI:
             # Save as WAV for processing
             input_wav = Path(temp_dir) / "input.wav"
             sf.write(str(input_wav), audio_data, sr)
+            
+            # Calculate original duration before clearing audio from memory
+            original_duration = len(audio_data) / sr
 
             # Clear audio from memory after saving
             del audio_data
@@ -287,10 +290,6 @@ def create_app(debug: bool = False) -> FastAPI:
 
             processing_time = (time.time() - start_time) * 1000
             
-            # Calculate original duration correctly
-            original_duration = None
-            if 'audio_data' in locals():
-                original_duration = len(audio_data) / sr
             if background_tasks:
                 background_tasks.add_task(cleanup_temp_file, temp_dir)
 
