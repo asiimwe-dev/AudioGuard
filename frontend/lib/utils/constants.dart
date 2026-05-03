@@ -7,7 +7,7 @@ class AppConstants {
   static const String developerName = 'AudioGuard Team';
   
   // API Configuration
-  static const String defaultApiBaseUrl = 'https://api.audioguard.io'; // Production cloud
+  static const String defaultApiBaseUrl = 'https://audioguard-api.onrender.com'; // Production cloud on Render.com
   static const String devApiBaseUrl = 'http://localhost:8000'; // Local development
   static const String emulatorApiBaseUrl = 'http://10.0.2.2:8000'; // Android emulator
   static const String stagingApiBaseUrl = 'https://staging-api.audioguard.io';// Staging server
