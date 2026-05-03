@@ -5,7 +5,8 @@ import '../models/watermark_model.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 
-// Mock Interpreter class for when tflite_flutter is not available
+/// Mock Interpreter class for when tflite_flutter is not available
+/// This is used in testing/development mode when TFLite is not compiled
 class _MockInterpreter {
   void run(List<dynamic> inputs, List<dynamic> outputs) {}
   void runForMultipleInputs(List<dynamic> inputs, Map<int, dynamic> outputs) {}
@@ -15,13 +16,30 @@ class _MockInterpreter {
 }
 
 /// TensorFlow Lite service for local watermark processing
-/// Note: TFLite is optional - cloud processing is primary
+///
+/// **IMPORTANT - DEVELOPMENT ONLY:**
+/// This service is designed for testing and fallback use only. In production:
+/// - TFLite is a mock implementation (returns no-op results)
+/// - Local processing cannot replace cloud processing
+/// - Use cloud API for production watermarking (see ApiService)
+///
+/// Cloud processing is the primary and recommended approach because:
+/// 1. Models are constantly optimized and updated on the server
+/// 2. Encoding/decoding quality is higher with server-side processing
+/// 3. Better support for audio format variations
+/// 4. Automatic benefit from algorithm improvements without app updates
+///
+/// LocalService should ONLY be used for:
+/// - Development and debugging
+/// - Testing without network connectivity
+/// - Fallback when cloud is temporarily unavailable (with clear user notification)
 class LocalService {
   dynamic _interpreter;
   bool _isModelLoaded = false;
   bool _tfliteAvailable = false;
 
   /// Load TFLite model from assets
+  /// Note: In current implementation, this initializes the mock TFLite for testing
   Future<void> loadModel() async {
     if (_isModelLoaded) return;
 
@@ -31,7 +49,8 @@ class LocalService {
       // Try to load actual TFLite, fallback to mock if unavailable
       try {
         // ignore: avoid_print
-        print('TFLite support is optional - using mock implementation for testing');
+        print('[LocalService] TFLite support is optional - using mock implementation for testing');
+        print('[LocalService] ⚠️  For production watermarking, use cloud API (ApiService)');
         _interpreter = _MockInterpreter();
         _tfliteAvailable = false;
       } catch (e) {
@@ -42,6 +61,7 @@ class LocalService {
 
       _isModelLoaded = true;
       AppLogger.info('✅ LocalService initialized (TFLite mock mode for testing)');
+      AppLogger.warning('⚠️  LocalService is for testing only. Use ApiService for production.');
     } catch (e) {
       AppLogger.error('Failed to load model', e);
       _isModelLoaded = false;
@@ -55,6 +75,8 @@ class LocalService {
   /// Run TFLite inference for encoding
   /// Input: audio samples (Float32List)
   /// Output: encoded audio with watermark
+  ///
+  /// **DEVELOPMENT ONLY**: Returns mock results. For production, use ApiService.encode()
   Future<List<double>> encodeLocal({
     required List<double> audioSamples,
     required String message,
@@ -103,6 +125,8 @@ class LocalService {
   /// Run TFLite inference for decoding
   /// Input: encoded audio samples
   /// Output: extracted watermark message + confidence
+  ///
+  /// **DEVELOPMENT ONLY**: Returns mock results. For production, use ApiService.decode()
   Future<DecodingResult> decodeLocal({
     required List<double> audioSamples,
     int? messageLength,
@@ -165,6 +189,8 @@ class LocalService {
   }
 
   /// Verify watermark presence
+  ///
+  /// **DEVELOPMENT ONLY**: Returns mock results. For production, use ApiService.verify()
   Future<VerifyResult> verifyLocal({
     required List<double> audioSamples,
     required String expectedMessage,
@@ -220,6 +246,8 @@ class LocalService {
   }
 
   /// Analyze audio for watermark presence
+  ///
+  /// **DEVELOPMENT ONLY**: Returns mock results. For production, use ApiService.analyze()
   Future<AnalysisResult> analyzeLocal({
     required List<double> audioSamples,
   }) async {
