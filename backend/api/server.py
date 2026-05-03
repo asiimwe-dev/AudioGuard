@@ -33,6 +33,7 @@ except ImportError:
     from fastapi.middleware.gzip import GZipMiddleware
 import soundfile as sf
 import numpy as np
+from scipy import signal
 
 from engine import AudioGuardEncoder, AudioGuardDecoder
 try:
@@ -220,6 +221,14 @@ def create_app(debug: bool = False) -> FastAPI:
                     status_code=400,
                     detail=f"Audio file too large ({file_size_mb:.1f}MB). Maximum: 50MB",
                 )
+            
+            # Check if MP3 and limit further for Render tier (MP3 decompression is memory-intensive)
+            file_name = getattr(audio_file, 'filename', '').lower()
+            if file_name.endswith('.mp3') and file_size_mb > 10:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"MP3 files limited to 10MB on this tier ({file_size_mb:.1f}MB provided). Please use WAV format for larger files.",
+                )
 
             # Handle different formats with explicit error handling
             try:
@@ -232,19 +241,20 @@ def create_app(debug: bool = False) -> FastAPI:
 
             # Clean up input content from memory immediately
             del content
+            gc.collect()  # Force GC after large file load
             
             # Downsample to 22.05 kHz if needed (reduce memory usage)
+            # Use scipy.signal.resample which is more memory-efficient than librosa
             if sr > 22050:
-                import librosa
                 try:
-                    audio_data = librosa.resample(audio_data, orig_sr=sr, target_sr=22050)
-                    sr = 22050
-                except Exception:
-                    # If librosa resample fails, use scipy
-                    from scipy import signal
+                    # Use scipy resample directly (no librosa overhead)
                     num_samples = int(len(audio_data) * 22050 / sr)
                     audio_data = signal.resample(audio_data, num_samples)
                     sr = 22050
+                except Exception as e:
+                    logger.warning(f"Resample failed: {e}, continuing with original sample rate")
+                    # Continue with original sample rate if resample fails
+                    pass
 
             # Save as WAV for processing
             input_wav = Path(temp_dir) / "input.wav"
@@ -276,15 +286,18 @@ def create_app(debug: bool = False) -> FastAPI:
             app_state["encoded_files"][file_id] = str(persistent_path)
 
             processing_time = (time.time() - start_time) * 1000
-
-            # Schedule cleanup of temp directory
+            
+            # Calculate original duration correctly
+            original_duration = None
+            if 'audio_data' in locals():
+                original_duration = len(audio_data) / sr
             if background_tasks:
                 background_tasks.add_task(cleanup_temp_file, temp_dir)
 
             return EncodeResponse(
                 success=True,
                 file_id=file_id,
-                original_duration=len(audio_data) if 'audio_data' in locals() else 0 / sr,
+                original_duration=original_duration,
                 sample_rate=sr,
                 message_length=len(message),
                 embedding_strength=amplitude_factor,
