@@ -36,6 +36,41 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
     }
   }
 
+  Future<void> _pickFromLibrary() async {
+    final encodedFiles = await ref.read(encodedFilesLibraryProvider.future);
+    if (!mounted || encodedFiles.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No files in library')),
+        );
+      }
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => ListView.builder(
+        itemCount: encodedFiles.length,
+        itemBuilder: (context, index) {
+          final file = encodedFiles[index];
+          return ListTile(
+            leading: const Icon(Icons.audio_file),
+            title: Text(file.filename, maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text(
+              'Message: ${file.message} • ${file.fileSizeString}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: () {
+              ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+              Navigator.pop(context);
+            },
+          );
+        },
+      ),
+    );
+  }
+
   String _getUserFriendlyErrorMessage(Object error) {
     final errorString = error.toString();
     
@@ -240,10 +275,20 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
-          ElevatedButton.icon(
-            onPressed: _pickAudioFile,
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Select Audio File'),
+          Column(
+            children: [
+              ElevatedButton.icon(
+                onPressed: _pickAudioFile,
+                icon: const Icon(Icons.audio_file),
+                label: const Text('Select from Phone Storage'),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: _pickFromLibrary,
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Select from Library'),
+              ),
+            ],
           ),
         ],
       ),
