@@ -5,9 +5,10 @@ This document provides a comprehensive reference for the AudioGuard REST API.
 ## Table of Contents
 1. [Base URL](#base-url)
 2. [Interactive Documentation](#interactive-documentation)
-3. [Endpoints Overview](#endpoints-overview)
-4. [Endpoint Details](#endpoint-details)
-5. [Error Handling](#error-handling)
+3. [Engine Capabilities](#engine-capabilities)
+4. [Endpoints Overview](#endpoints-overview)
+5. [Endpoint Details](#endpoint-details)
+6. [Error Handling](#error-handling)
 
 ## Base URL
 *   Development: `http://localhost:8000`
@@ -18,16 +19,28 @@ Interactive API documentation is available at the following locations when the s
 *   Swagger UI: `http://localhost:8000/docs`
 *   ReDoc: `http://localhost:8000/redoc`
 
+## Engine Capabilities
+
+All endpoints utilize the production-grade **Multi-Resolution STFT** engine with Reed-Solomon Error Correction and persistent metadata storage. These features are fully integrated and provide high robustness with zero changes required to the API contract.
+
+**Key Engine Features (Automatic):**
+- ✅ Multi-resolution watermark embedding (3x redundancy)
+- ✅ Reed-Solomon error correction (20% overhead)
+- ✅ Adaptive energy thresholding for extraction
+- ✅ Persistent file storage with UUID tracking
+- ✅ Per-resolution confidence scoring
+- ✅ Support for MP3, AAC, and OGG formats
+
 ## Endpoints Overview
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/health` | GET | Service health check |
-| `/api/v1/encode` | POST | Embed watermark into audio |
-| `/api/v1/decode` | POST | Extract watermark from audio |
-| `/api/v1/verify` | POST | Check for watermark presence |
-| `/api/v1/analyze` | POST | Spectral analysis of audio |
-| `/api/v1/download/{file_id}` | GET | Retrieve processed audio |
+| Endpoint | Method | Purpose | Engine Features |
+|----------|--------|---------|-----------------|
+| `/health` | GET | Service health check | Reports engine readiness |
+| `/api/v1/encode` | POST | Embed watermark into audio | Multi-res + ECC + storage |
+| `/api/v1/decode` | POST | Extract watermark from audio | Multi-res voting + ECC recovery |
+| `/api/v1/verify` | POST | Check for watermark presence | Multi-res confidence scoring |
+| `/api/v1/analyze` | POST | Spectral analysis of audio | Per-resolution BER heatmap |
+| `/api/v1/download/{file_id}` | GET | Retrieve processed audio | UUID-tracked persistent storage |
 
 ## Endpoint Details
 
@@ -69,7 +82,7 @@ curl -X POST http://localhost:8000/api/v1/encode \
 ```json
 {
   "success": true,
-  "file_id": "file_1714254799_3847",
+  "file_id": "550e8400-e29b-41d4-a716-446655440000",
   "original_duration": 2.5,
   "sample_rate": 44100,
   "processing_time_ms": 487.34
@@ -84,13 +97,13 @@ Extracts a watermark message from a processed audio file.
 curl -X POST http://localhost:8000/api/v1/decode \
   -H "Content-Type: application/json" \
   -d '{
-    "file_id": "file_1714254799_3847",
+    "file_id": "550e8400-e29b-41d4-a716-446655440000",
     "message_length": 14
   }'
 ```
 
 **Parameters (JSON Body)**
-*   `file_id` (String, Required): The ID returned from the encode endpoint.
+*   `file_id` (String, Required): The UUID returned from the encode endpoint.
 *   `message_length` (Integer, Optional): Expected message length for better accuracy.
 
 **Response (200 OK)**
@@ -110,7 +123,7 @@ Quickly checks if a watermark is present in the audio without extracting the ful
 ```bash
 curl -X POST http://localhost:8000/api/v1/verify \
   -H "Content-Type: application/json" \
-  -d '{"file_id": "file_1714254799_3847"}'
+  -d '{"file_id": "550e8400-e29b-41d4-a716-446655440000"}'
 ```
 
 **Response (200 OK)**
