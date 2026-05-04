@@ -91,6 +91,41 @@ class EncoderMultiResolution:
         
         return modified_magnitude
     
+    def encode(
+        self,
+        input_audio_path: str,
+        output_audio_path: str,
+        message: str,
+        bits_per_frame: int = 4,
+        use_ecc: bool = True,
+        redundancy: int = 2,
+    ) -> Dict:
+        """
+        Backward-compatible encode method (delegates to encode_multiresolution).
+        
+        Matches the original AudioGuardEncoder.encode() signature for API compatibility.
+        
+        Args:
+            input_audio_path: Path to original audio
+            output_audio_path: Path to save watermarked audio
+            message: Text message to embed
+            bits_per_frame: Bits per frame (ignored in multi-res, kept for compatibility)
+            use_ecc: Apply Reed-Solomon ECC
+            redundancy: Repeat message N times across timeline
+            
+        Returns:
+            Dict with encoding metadata
+        """
+        return self.encode_multiresolution(
+            input_path=input_audio_path,
+            output_path=output_audio_path,
+            message=message,
+            use_ecc=use_ecc,
+            redundancy=redundancy,
+            sr=44100,
+            amplitude_factor=self.amplitude_factor,
+        )
+    
     def encode_multiresolution(
         self,
         input_path: str,

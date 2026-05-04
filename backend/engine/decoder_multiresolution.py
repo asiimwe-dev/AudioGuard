@@ -126,6 +126,35 @@ class MultiResolutionDecoder:
         
         return np.array(extracted_bits), np.array(confidences), metrics
     
+    def decode(
+        self,
+        input_audio_path: str,
+        message_length: int,
+        validate_length: bool = True,
+    ) -> Dict:
+        """
+        Backward-compatible decode method (delegates to decode_multiresolution).
+        
+        Matches the original AudioGuardDecoder.decode() signature for API compatibility.
+        
+        Args:
+            input_audio_path: Path to watermarked audio
+            message_length: Expected message length in characters
+            validate_length: Unused (for compatibility)
+            
+        Returns:
+            Dict with message, confidence, snr_db
+        """
+        return self.decode_multiresolution(
+            audio_path=input_audio_path,
+            message_length=message_length,
+            sr=44100,
+            start_bin=50,
+            bits_per_frame=4,
+            amplitude_factor=0.05,
+            voting_method="majority",
+        )
+    
     def decode_multiresolution(
         self,
         audio_path: str,

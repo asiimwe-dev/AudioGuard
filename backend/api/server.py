@@ -36,6 +36,7 @@ import numpy as np
 from scipy import signal
 
 from engine import AudioGuardEncoder, AudioGuardDecoder
+from engine import EncoderMultiResolution, MultiResolutionDecoder
 try:
     from engine import CNNWatermarkDecoder
     CNN_AVAILABLE = True
@@ -266,10 +267,9 @@ def create_app(debug: bool = False) -> FastAPI:
             # Clear audio from memory after saving
             del audio_data
 
-            # Encode watermark
+            # Encode watermark using Phase 2 multi-resolution encoder
             output_wav = Path(temp_dir) / "output.wav"
-            encoder = AudioGuardEncoder(
-                frame_size=frame_size,
+            encoder = EncoderMultiResolution(
                 amplitude_factor=amplitude_factor,
                 seed=seed,
             )
@@ -376,10 +376,10 @@ def create_app(debug: bool = False) -> FastAPI:
                     message = None
                     confidence = 0.0
             
-            # **FALLBACK: Use classical decoder if CNN failed or unavailable**
+            # **FALLBACK: Use Phase 2 multi-resolution decoder if CNN failed or unavailable**
             if message is None or confidence < confidence_threshold:
-                logger.info("Attempting classical decoding...")
-                decoder = AudioGuardDecoder()
+                logger.info("Attempting multi-resolution decoding...")
+                decoder = MultiResolutionDecoder()
                 
                 if message_length is not None:
                     # Try with specified message length
