@@ -10,7 +10,7 @@ Usage:
     audioguard verify -i watermarked.wav
     audioguard analyze -i watermarked.wav
     audioguard batch -d ./audio_dir -m "MSG" --output-dir ./watermarked
-    audioguard config --api-key YOUR_KEY --api-url https://api.audioguard.io
+    audioguard config --api-key YOUR_KEY --api-url https://audioguard-api.onrender.com
 """
 
 import click
@@ -318,20 +318,51 @@ def verify(input_file, output_json):
 
         start_time = time.time()
 
+        watermark_detected = False
+        confidence = 0.0
+
         # Use CNN if available, else classical
         if CNN_AVAILABLE:
             try:
                 detector = CNNWatermarkDecoder()
-                _, confidence = detector.decode(str(input_path))
-                watermark_detected = confidence > 0.5
+                _, cnn_confidence = detector.decode(str(input_path))
+                watermark_detected = cnn_confidence > 0.5
+                confidence = cnn_confidence
             except Exception:
+                # Fallback to classical decoder
                 decoder = AudioGuardDecoder()
-                message, confidence, _ = decoder.decode(str(input_path))
-                watermark_detected = message is not None
+                for try_length in range(1, 33):
+                    try:
+                        result = decoder.decode(str(input_path), try_length)
+                        if isinstance(result, dict):
+                            msg = result.get('message')
+                            conf = result.get('confidence', 0.0)
+                        else:
+                            msg, conf, _ = result
+                        if msg is not None:
+                            watermark_detected = True
+                            confidence = max(confidence, conf)
+                            if confidence > 0.8:
+                                break
+                    except Exception:
+                        continue
         else:
             decoder = AudioGuardDecoder()
-            message, confidence, _ = decoder.decode(str(input_path))
-            watermark_detected = message is not None
+            for try_length in range(1, 33):
+                try:
+                    result = decoder.decode(str(input_path), try_length)
+                    if isinstance(result, dict):
+                        msg = result.get('message')
+                        conf = result.get('confidence', 0.0)
+                    else:
+                        msg, conf, _ = result
+                    if msg is not None:
+                        watermark_detected = True
+                        confidence = max(confidence, conf)
+                        if confidence > 0.8:
+                            break
+                except Exception:
+                    continue
 
         processing_time = (time.time() - start_time) * 1000
 

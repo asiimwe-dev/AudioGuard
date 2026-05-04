@@ -13,7 +13,7 @@ Usage (Local):
 
 Usage (Cloud):
     guard = AudioGuardMobile(
-        api_url="https://api.audioguard.io",
+        api_url="https://audioguard-api.onrender.com",
         api_key="your_api_key"
     )
     message, confidence = guard.decode("audio.mp3")
@@ -97,7 +97,7 @@ class AudioGuardMobile:
 
         Args:
             use_local: Use local models (requires engine installed)
-            api_url: Cloud API URL (e.g., https://api.audioguard.io)
+            api_url: Cloud API URL (e.g., https://audioguard-api.onrender.com)
             api_key: API key for authentication
             tflite_model_path: Path to TFLite model for CNN (optional)
             fallback_to_api: Automatically fallback to API if local fails
@@ -365,7 +365,7 @@ if __name__ == "__main__":
     # Cloud mode
     print("2. Cloud mode (remote API):")
     print("  guard = AudioGuardMobile(")
-    print('    api_url="https://api.audioguard.io",')
+    print('    api_url="https://audioguard-api.onrender.com",')
     print('    api_key="your_api_key"')
     print("  )\n")
 
@@ -373,6 +373,6 @@ if __name__ == "__main__":
     print("3. Hybrid mode (local + cloud fallback):")
     print("  guard = AudioGuardMobile(")
     print("    use_local=True,")
-    print('    api_url="https://api.audioguard.io",')
+    print('    api_url="https://audioguard-api.onrender.com",')
     print("    fallback_to_api=True")
     print("  )\n")

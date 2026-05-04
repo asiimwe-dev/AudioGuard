@@ -31,7 +31,7 @@ __all__ = [
     "create_frequency_array",
 ]
 
-# Add Phase 3 if available
+# Add Phase 3 -- TODO
 if PHASE3_AVAILABLE:
     __all__.extend([
         "WatermarkDetectorCNN",

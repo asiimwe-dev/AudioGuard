@@ -11,6 +11,7 @@ import time
 import tempfile
 import logging
 import gc
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
@@ -88,11 +89,26 @@ def create_app(debug: bool = False) -> FastAPI:
     Returns:
         Configured FastAPI application instance
     """
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        """
+        Lifespan context manager for startup and shutdown events.
+        Replaces deprecated @app.on_event() decorators.
+        """
+        # Startup
+        logger.info("AudioGuard API starting up...")
+        cleanup_resources()
+        yield
+        # Shutdown
+        logger.info("AudioGuard API shutting down...")
+        cleanup_resources()
+
     app = FastAPI(
         title="AudioGuard API",
         description="High-fidelity digital audio watermarking service",
         version="1.0.0",
         debug=debug,
+        lifespan=lifespan,
     )
 
     # Add middleware
@@ -107,18 +123,6 @@ def create_app(debug: bool = False) -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
     )
-
-    @app.on_event("startup")
-    async def startup_event():
-        """Cleanup old files on startup."""
-        logger.info("AudioGuard API starting up...")
-        cleanup_resources()
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        """Cleanup on shutdown."""
-        logger.info("AudioGuard API shutting down...")
-        cleanup_resources()
 
     @app.middleware("http")
     async def add_request_id(request, call_next):

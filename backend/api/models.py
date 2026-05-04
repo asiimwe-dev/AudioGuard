@@ -82,7 +82,9 @@ class VerifyRequest(BaseModel):
     """Request body for watermark verification endpoint."""
 
     file_id: str = Field(..., description="File ID from encoding response")
-    expected_message: str = Field(..., description="Expected message to verify")
+    expected_message: Optional[str] = Field(
+        None, description="Expected message to verify (optional for binary detection)"
+    )
     confidence_threshold: float = Field(
         default=0.7, ge=0.0, le=1.0, description="Confidence threshold for acceptance"
     )
