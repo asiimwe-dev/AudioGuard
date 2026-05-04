@@ -57,7 +57,10 @@ class MultiResolutionDecoder:
         amplitude_factor: float = 0.05,
     ) -> Tuple[np.ndarray, np.ndarray, Dict]:
         """
-        Extract bits from a single STFT resolution.
+        Extract bits from a single STFT resolution using adaptive energy thresholding.
+        
+        Uses per-frame normalization for more robust bit detection across varying
+        signal energy. Improved over simple energy threshold for better BER.
         
         Args:
             magnitude: Magnitude spectrum (n_frames, n_freqs)
@@ -81,22 +84,30 @@ class MultiResolutionDecoder:
         
         np.random.seed(self.seed)
         
+        # Per-frame statistics for adaptive thresholding
+        frame_mean = np.mean(magnitude, axis=1, keepdims=True)  # (n_frames, 1)
+        frame_std = np.std(magnitude, axis=1, keepdims=True)    # (n_frames, 1)
+        
         for bit_idx in range(n_bits):
             # Deterministic bins for this bit
             bit_bin = start_bin + bit_idx % (n_freqs - start_bin)
             
-            # Extract energy from this frequency across frames
-            energies = magnitude[:, bit_bin]
-            mean_energy = np.mean(energies)
-            std_energy = np.std(energies)
+            # Extract magnitude from this frequency across frames
+            magnitude_profile = magnitude[:, bit_bin]
             
-            # Energy ratio: high = bit is 1, low = bit is 0
-            energy_ratio = mean_energy / (std_energy + 1e-10)
+            # Normalize by frame statistics for adaptive threshold
+            normalized_profile = (magnitude_profile - frame_mean[:, 0]) / (frame_std[:, 0] + 1e-10)
             
-            # Estimate bit from energy ratio
-            threshold = 1.0  # Adaptive threshold
-            extracted_bit = 1 if energy_ratio > threshold else 0
-            confidence = min(abs(energy_ratio - threshold) / (abs(energy_ratio - threshold) + 1), 1.0)
+            # Extract bit: positive deviation = 1, negative = 0
+            mean_deviation = np.mean(normalized_profile)
+            std_deviation = np.std(normalized_profile)
+            
+            if mean_deviation > 0:
+                extracted_bit = 1
+                confidence = min(abs(mean_deviation) / (abs(mean_deviation) + 1), 1.0)
+            else:
+                extracted_bit = 0
+                confidence = min(abs(mean_deviation) / (abs(mean_deviation) + 1), 1.0)
             
             extracted_bits.append(extracted_bit)
             confidences.append(confidence)
