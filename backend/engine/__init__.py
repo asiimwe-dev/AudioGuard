@@ -8,6 +8,19 @@ from .psychoacoustic import (
     AdaptiveAmplitudeFactor,
     create_frequency_array,
 )
+from .ecc import MessageECC, encode_message_with_ecc, decode_message_with_ecc, ECC_AVAILABLE
+from .sync import SyncDetector, BarkerCodes, create_sync_header, parse_sync_header
+
+# Phase 2 (Multi-Resolution)
+from .multi_res_stft import (
+    stft_multiresolution,
+    inverse_stft_multiresolution,
+    align_multiresolution_stfts,
+    combine_multiresolution_bits,
+    extract_multiresolution_confidence,
+)
+from .encoder_multiresolution import EncoderMultiResolution
+from .decoder_multiresolution import MultiResolutionDecoder
 
 # Phase 3 imports (conditional on PyTorch availability)
 try:
@@ -24,11 +37,28 @@ __all__ = [
     "inverse_stft",
     "text_to_binary",
     "binary_to_text",
-    # Phase 2
+    # Phase 1.5 (Robustness: ECC, Sync, Storage)
+    "MessageECC",
+    "encode_message_with_ecc",
+    "decode_message_with_ecc",
+    "ECC_AVAILABLE",
+    "SyncDetector",
+    "BarkerCodes",
+    "create_sync_header",
+    "parse_sync_header",
+    # Phase 2 (Decoder + Multi-Res)
     "AudioGuardDecoder",
     "ISO226MaskingModel",
     "AdaptiveAmplitudeFactor",
     "create_frequency_array",
+    # Phase 2 (Multi-Resolution)
+    "stft_multiresolution",
+    "inverse_stft_multiresolution",
+    "align_multiresolution_stfts",
+    "combine_multiresolution_bits",
+    "extract_multiresolution_confidence",
+    "EncoderMultiResolution",
+    "MultiResolutionDecoder",
 ]
 
 # Add Phase 3 if available

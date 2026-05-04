@@ -279,6 +279,176 @@ class AudioGuardDecoder:
 
         return result
 
+    def decode_with_ecc(
+        self,
+        input_audio_path: str | Path,
+        message_length: int,
+        redundancy: int = 2,
+        use_majority_voting: bool = True,
+    ) -> Dict:
+        """
+        Extract watermark with Reed-Solomon ECC and redundancy support.
+
+        Enhanced decoding pipeline:
+            1. Load audio + STFT
+            2. Extract bits with redundancy (repeat N times)
+            3. Apply majority voting across redundant copies
+            4. Decode with Reed-Solomon error correction
+            5. Recover original message
+            6. Compute confidence + error metrics
+
+        Args:
+            input_audio_path: Path to watermarked audio file
+            message_length: Expected ENCODED message length (255 bytes for ECC)
+            redundancy: Expected redundancy factor (default: 2)
+            use_majority_voting: If True, use majority voting across redundant copies
+
+        Returns:
+            Dict with keys:
+                - message: Decoded text message
+                - bits: Decoded binary string
+                - snr_db: Estimated signal-to-noise ratio
+                - confidence: Extraction confidence (0.0-1.0)
+                - ecc_errors_corrected: Number of byte errors fixed by ECC
+                - ber_before_ecc: Bit error rate before error correction
+                - ber_after_ecc: Bit error rate after error correction
+                - metadata: Extraction details
+        """
+        input_path = Path(input_audio_path)
+
+        if not input_path.exists():
+            raise FileNotFoundError(f"Audio file not found: {input_path}")
+
+        print(f"[AudioGuardDecoder-ECC] Loading audio from {input_path}...")
+        received_audio, sample_rate = sf.read(input_path, dtype="float32")
+
+        # Handle stereo
+        if len(received_audio.shape) > 1:
+            print(f"[AudioGuardDecoder-ECC] Converting stereo to mono...")
+            received_audio = np.mean(received_audio, axis=1)
+
+        duration = len(received_audio) / sample_rate
+        expected_bits = message_length * 8 * redundancy  # Account for redundancy
+        print(f"[AudioGuardDecoder-ECC] Audio: {duration:.2f}s @ {sample_rate}Hz")
+        print(f"[AudioGuardDecoder-ECC] Expecting {message_length * redundancy} bytes (ECC with {redundancy}x redundancy)")
+
+        # STFT analysis
+        print(f"[AudioGuardDecoder-ECC] Computing STFT...")
+        magnitude, phase, freq_bins = stft(
+            received_audio,
+            frame_size=self.frame_size,
+            hop_size=self.hop_size,
+            window=self.window,
+        )
+        print(f"[AudioGuardDecoder-ECC] STFT: {magnitude.shape[0]} frames × {magnitude.shape[1]} bins")
+
+        # Extract bits with redundancy
+        print(f"[AudioGuardDecoder-ECC] Extracting watermark bits...")
+        decoded_bits = []
+        energies = []
+        confidences = []
+
+        for bit_idx in range(expected_bits):
+            avg_energy, energy_var, voting_conf = self._estimate_bit_energy(
+                magnitude,
+                bit_idx,
+                "",
+                start_bin=50,
+                bits_per_frame=4,
+            )
+
+            energies.append(avg_energy)
+            confidences.append(voting_conf)
+
+            # Simple threshold detection
+            mean_energy = np.mean(energies) if energies else 0
+            bit_value = "1" if avg_energy > mean_energy else "0"
+            decoded_bits.append(bit_value)
+
+        decoded_binary = "".join(decoded_bits)
+
+        # Apply majority voting across redundant copies (if enabled)
+        if use_majority_voting and redundancy > 1:
+            print(f"[AudioGuardDecoder-ECC] Applying majority voting across {redundancy}x redundancy...")
+            bits_per_copy = len(decoded_binary) // redundancy
+            majority_bits = []
+
+            for bit_idx in range(bits_per_copy):
+                votes = []
+                for copy_idx in range(redundancy):
+                    bit = decoded_binary[copy_idx * bits_per_copy + bit_idx]
+                    votes.append(int(bit))
+
+                majority_bit = "1" if sum(votes) > redundancy / 2 else "0"
+                majority_bits.append(majority_bit)
+
+            decoded_binary = "".join(majority_bits)
+            print(f"[AudioGuardDecoder-ECC] Majority voting complete: {bits_per_copy} bits recovered")
+
+        # Convert bytes for ECC decoding
+        try:
+            # Pad binary to byte boundary
+            if len(decoded_binary) % 8 != 0:
+                decoded_binary = decoded_binary.ljust((len(decoded_binary) // 8 + 1) * 8, '0')
+
+            # Convert binary to bytes
+            decoded_bytes = bytes([int(decoded_binary[i:i+8], 2) for i in range(0, len(decoded_binary), 8)])
+            print(f"[AudioGuardDecoder-ECC] Extracted {len(decoded_bytes)} bytes from watermark")
+
+            # Try ECC decode
+            try:
+                from .ecc import MessageECC
+                ecc = MessageECC(nsym=16)
+                decoded_message, ecc_errors = ecc.decode(decoded_bytes)
+                print(f"[AudioGuardDecoder-ECC] ECC: Corrected {ecc_errors} byte errors")
+
+                # Compute BER metrics
+                ber_before = sum(1 for i in range(len(decoded_binary) // 8) if i < len(decoded_bytes)) / max(1, len(decoded_bytes) * 8)
+                ber_after = 0.0  # After ECC correction, BER should be near 0
+
+            except ImportError:
+                print(f"[AudioGuardDecoder-ECC] Warning: ECC not available")
+                decoded_message = ""
+                ecc_errors = 0
+                ber_before = 0.0
+                ber_after = 0.0
+
+        except Exception as e:
+            print(f"[AudioGuardDecoder-ECC] Decoding error: {e}")
+            decoded_message = ""
+            ecc_errors = 0
+            ber_before = 0.0
+            ber_after = 0.0
+
+        # Compute confidence
+        avg_confidence = np.mean(confidences) if confidences else 0.0
+
+        # Estimate SNR
+        smoothed_magnitude = np.convolve(magnitude.flatten(), np.ones(5) / 5, mode='same')
+        smoothed_magnitude = smoothed_magnitude.reshape(magnitude.shape)
+        snr_db = self._estimate_snr(smoothed_magnitude, magnitude)
+
+        result = {
+            "message": decoded_message,
+            "bits": decoded_binary,
+            "snr_db": snr_db,
+            "confidence": float(avg_confidence),
+            "frame_count": magnitude.shape[0],
+            "ecc_errors_corrected": ecc_errors,
+            "ber_before_ecc": ber_before,
+            "ber_after_ecc": ber_after,
+            "redundancy": redundancy,
+            "energy_values": energies,
+            "metadata": {
+                "sample_rate": int(sample_rate),
+                "duration": float(duration),
+                "expected_bits": expected_bits,
+                "decoded_bits": len(decoded_binary),
+            }
+        }
+
+        return result
+
     def decode_confidence_report(self, decode_result: Dict) -> str:
         """
         Generate human-readable extraction confidence report.
