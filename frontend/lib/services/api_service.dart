@@ -559,6 +559,56 @@ class ApiService {
     }
   }
 
+  /// Upload audio file and get fileId (without encoding)
+  /// Used for files from library that need fileId for verification/analysis/decode
+  Future<String> uploadAudioFile({
+    required String audioFilePath,
+  }) async {
+    try {
+      final file = File(audioFilePath);
+      if (!await file.exists()) {
+        throw ProcessingError(
+          message: 'File not found',
+          code: 'FILE_NOT_FOUND',
+          details: audioFilePath,
+        );
+      }
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          audioFilePath,
+          filename: file.path.split('/').last,
+        ),
+      });
+
+      final response = await _dio.post(
+        AppConstants.uploadEndpoint,
+        data: formData,
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final fileId = response.data['file_id'] as String?;
+        if (fileId != null && fileId.isNotEmpty) {
+          AppLogger.info('File uploaded successfully, fileId: $fileId');
+          return fileId;
+        }
+      }
+
+      throw ProcessingError(
+        message: 'Failed to upload file',
+        code: 'UPLOAD_FAILED',
+        details: 'No file_id in response',
+      );
+    } catch (e) {
+      AppLogger.error('File upload failed', e);
+      throw ProcessingError(
+        message: 'Failed to upload file',
+        code: 'UPLOAD_FAILED',
+        originalError: e,
+      );
+    }
+  }
+
   /// Decode watermark from audio
   Future<DecodingResult> decode({
     required String fileId,

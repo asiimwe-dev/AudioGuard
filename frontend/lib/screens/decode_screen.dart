@@ -100,9 +100,24 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            onTap: () {
-              ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+            onTap: () async {
               Navigator.pop(context);
+              // Upload file to get fileId
+              final apiService = ref.read(apiServiceProvider);
+              try {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Uploading file...')),
+                );
+                final fileId = await apiService.uploadAudioFile(audioFilePath: file.filePath);
+                ref.read(selectedEncodedFileIdProvider.notifier).state = fileId;
+                ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Upload failed: $e')),
+                  );
+                }
+              }
             },
           );
         },
