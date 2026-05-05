@@ -573,7 +573,8 @@ def create_app(debug: bool = False) -> FastAPI:
                                 msg, conf, _ = result
                             
                             if msg is not None:
-                                watermark_detected = True
+                                if conf >= confidence_threshold:
+                                    watermark_detected = True
                                 confidence = max(confidence, conf)
                                 if confidence > 0.8:
                                     break
@@ -593,7 +594,8 @@ def create_app(debug: bool = False) -> FastAPI:
                             msg, conf, _ = result
                         
                         if msg is not None:
-                            watermark_detected = True
+                            if conf >= confidence_threshold:
+                                watermark_detected = True
                             confidence = max(confidence, conf)
                             if confidence > 0.8:
                                 break

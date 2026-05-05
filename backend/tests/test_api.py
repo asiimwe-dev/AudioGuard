@@ -470,8 +470,8 @@ class TestUpload:
         assert len(set(file_ids)) == 3
 
     def test_upload_file_can_be_verified(self, client, sample_audio):
-        """Uploaded file should be verifiable with verify endpoint."""
-        # Upload file
+        """Uploaded file should be accessible to verify endpoint."""
+        # Upload original file
         upload_response = client.post(
             "/api/v1/upload",
             files={"audio_file": ("test.wav", io.BytesIO(sample_audio))}
@@ -479,7 +479,7 @@ class TestUpload:
         assert upload_response.status_code == 200
         file_id = upload_response.json()["file_id"]
         
-        # Verify uploaded file (should detect no watermark since it's plain audio)
+        # Verify endpoint should be able to access uploaded file (even if detection is imperfect)
         verify_response = client.post(
             "/api/v1/verify",
             json={"file_id": file_id}
@@ -487,6 +487,32 @@ class TestUpload:
         assert verify_response.status_code == 200
         verify_data = verify_response.json()
         assert "watermark_detected" in verify_data
+        assert "confidence" in verify_data
+
+    def test_verify_encoded_file_detects_watermark(self, client, sample_audio):
+        """Verify encoded file should detect watermark."""
+        # First encode a file with watermark
+        encode_data = {
+            "message": "test123",
+        }
+        encode_response = client.post(
+            "/api/v1/encode",
+            data=encode_data,
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))}
+        )
+        assert encode_response.status_code == 200
+        encoded_file_id = encode_response.json()["file_id"]
+        
+        # Verify encoded file - SHOULD detect watermark
+        verify_response = client.post(
+            "/api/v1/verify",
+            json={"file_id": encoded_file_id}
+        )
+        assert verify_response.status_code == 200
+        verify_data = verify_response.json()
+        assert verify_data["watermark_detected"] is True, \
+            "Encoded file should have watermark detected"
+        assert verify_data["confidence"] > 0.5
 
 
 if __name__ == "__main__":
