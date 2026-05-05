@@ -453,7 +453,7 @@ class ApiService {
         headers: {
           if (_authToken != null) 'Authorization': 'Bearer $_authToken',
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          // Don't set Content-Type here - let Dio auto-set it for multipart/form-data
         },
       ),
     );
@@ -575,7 +575,7 @@ class ApiService {
       }
 
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
+        'audio_file': await MultipartFile.fromFile(
           audioFilePath,
           filename: file.path.split('/').last,
         ),
