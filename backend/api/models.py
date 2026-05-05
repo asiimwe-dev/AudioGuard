@@ -24,6 +24,18 @@ class EncodeRequest(BaseModel):
     seed: int = Field(default=42, description="Random seed for reproducibility")
 
 
+class UploadResponse(BaseModel):
+    """Response body for file upload endpoint."""
+
+    success: bool
+    file_id: str = Field(..., description="Unique ID for uploaded file")
+    original_duration: float = Field(..., description="Duration in seconds")
+    sample_rate: int = Field(..., description="Sample rate in Hz")
+    processing_time_ms: float = Field(
+        ..., description="Time taken to upload and process in milliseconds"
+    )
+
+
 class EncodeResponse(BaseModel):
     """Response body for encoding endpoint."""
 

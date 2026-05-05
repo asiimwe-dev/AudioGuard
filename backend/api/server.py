@@ -11,6 +11,7 @@ import time
 import tempfile
 import logging
 import gc
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -44,6 +45,7 @@ except ImportError:
     CNN_AVAILABLE = False
 
 from .models import (
+    UploadResponse,
     EncodeRequest,
     EncodeResponse,
     DecodeRequest,
@@ -159,6 +161,60 @@ def create_app(debug: bool = False) -> FastAPI:
         """Redirect to API documentation."""
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/docs")
+
+    @app.post("/api/v1/upload", response_model=UploadResponse)
+    async def upload_audio(
+        audio_file: UploadFile = File(...),
+    ):
+        """Upload audio file without watermarking.
+        
+        Used by frontend to upload files for verification, decoding, or analysis.
+        Returns a file_id that can be used with verify, decode, and analyze endpoints.
+        
+        Args:
+            audio_file: Audio file to upload (WAV or MP3)
+            
+        Returns:
+            UploadResponse with file_id
+        """
+        start_time = time.time()
+        try:
+            # Save file temporarily
+            file_id = f"upload_{uuid.uuid4().hex[:12]}"
+            file_path = os.path.join(STORAGE_DIR, f"{file_id}.wav")
+            
+            # Read and save file
+            contents = await audio_file.read()
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            
+            # Load audio to get metadata
+            audio_data, sample_rate = sf.read(file_path, dtype="float32")
+            
+            # Handle stereo -> mono conversion
+            if len(audio_data.shape) > 1:
+                audio_data = np.mean(audio_data, axis=1)
+            
+            duration = len(audio_data) / sample_rate
+            
+            # Register file in app state so it can be used by verify/decode/analyze
+            app_state["encoded_files"][file_id] = file_path
+            
+            processing_time = (time.time() - start_time) * 1000
+            
+            return UploadResponse(
+                success=True,
+                file_id=file_id,
+                original_duration=duration,
+                sample_rate=sample_rate,
+                processing_time_ms=processing_time,
+            )
+        except Exception as e:
+            logger.error(f"Upload failed: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Upload failed: {str(e)}"
+            )
 
     @app.post("/api/v1/encode", response_model=EncodeResponse)
     async def encode_watermark(

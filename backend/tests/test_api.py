@@ -416,5 +416,78 @@ class TestEndToEnd:
         assert len(set(file_ids)) == 3
 
 
+class TestUpload:
+    """Test the /api/v1/upload endpoint for file uploads without watermarking."""
+
+    def test_upload_returns_200(self, client, sample_audio):
+        """Upload endpoint should return 200 on success."""
+        response = client.post(
+            "/api/v1/upload",
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))}
+        )
+        assert response.status_code == 200
+
+    def test_upload_response_structure(self, client, sample_audio):
+        """Upload response should have all required fields."""
+        response = client.post(
+            "/api/v1/upload",
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert "success" in data
+        assert "file_id" in data
+        assert "original_duration" in data
+        assert "sample_rate" in data
+        assert "processing_time_ms" in data
+        
+        assert data["success"] is True
+        assert isinstance(data["file_id"], str)
+        assert data["file_id"].startswith("upload_")
+        assert data["original_duration"] > 0
+        assert data["sample_rate"] == 44100
+
+    def test_upload_without_file(self, client):
+        """Upload without file should return 422."""
+        response = client.post("/api/v1/upload")
+        assert response.status_code == 422
+
+    def test_upload_file_id_is_unique(self, client, sample_audio):
+        """Multiple uploads should create unique file_ids."""
+        file_ids = []
+        
+        for _ in range(3):
+            response = client.post(
+                "/api/v1/upload",
+                files={"audio_file": ("test.wav", io.BytesIO(sample_audio))}
+            )
+            assert response.status_code == 200
+            file_id = response.json()["file_id"]
+            file_ids.append(file_id)
+        
+        # All file_ids should be unique
+        assert len(set(file_ids)) == 3
+
+    def test_upload_file_can_be_verified(self, client, sample_audio):
+        """Uploaded file should be verifiable with verify endpoint."""
+        # Upload file
+        upload_response = client.post(
+            "/api/v1/upload",
+            files={"audio_file": ("test.wav", io.BytesIO(sample_audio))}
+        )
+        assert upload_response.status_code == 200
+        file_id = upload_response.json()["file_id"]
+        
+        # Verify uploaded file (should detect no watermark since it's plain audio)
+        verify_response = client.post(
+            "/api/v1/verify",
+            json={"file_id": file_id}
+        )
+        assert verify_response.status_code == 200
+        verify_data = verify_response.json()
+        assert "watermark_detected" in verify_data
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
