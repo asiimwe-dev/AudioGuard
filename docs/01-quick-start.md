@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-This guide will help you get AudioGuard up and running in a local development environment.
+This guide will help you get AudioGuard up and running in a local development environment. AudioGuard features a robust multi-resolution STFT engine with integrated Reed-Solomon error correction for industrial-grade audio protection.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)

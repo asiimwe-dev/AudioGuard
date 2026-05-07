@@ -172,16 +172,19 @@ class AudioGuardEncoder:
         output_audio_path: str | Path,
         message: str,
         bits_per_frame: int = 4,
+        use_ecc: bool = True,
+        redundancy: int = 2,
     ) -> dict:
         """
         Encode a watermark message into an audio file.
 
         Full encoding pipeline:
             1. Load audio file (preserves original sample rate & bit depth)
-            2. Perform STFT decomposition into frequency domain
-            3. Apply bit-spreading watermark embedding
-            4. Reconstruct audio from modified spectrum
-            5. Save watermarked file with original format preserved
+            2. Pre-process message with ECC + redundancy (if enabled)
+            3. Perform STFT decomposition into frequency domain
+            4. Apply bit-spreading watermark embedding (repeat across frames)
+            5. Reconstruct audio from modified spectrum
+            6. Save watermarked file with original format preserved
 
         Args:
             input_audio_path: Path to input audio file (any format soundfile supports)
@@ -189,22 +192,24 @@ class AudioGuardEncoder:
             message: Text message to embed (e.g., "AUTHOR_001")
             bits_per_frame: Number of frequency bins per bit (default: 4)
                            Higher = more robust but less capacity
+            use_ecc: If True, apply Reed-Solomon error correction (default: True)
+            redundancy: Number of times to spread message across file (default: 2)
+                       Higher = more robust but uses more capacity
 
         Returns:
             dict: Encoding metadata containing:
                 - sample_rate: Original audio sample rate
                 - duration: Audio duration in seconds
-                - bit_sequence: Binary representation of message
+                - message: Original message
+                - bit_sequence: Binary representation (with ECC if enabled)
                 - frame_count: Number of STFT frames
                 - spread_info: Bit-spreading configuration
+                - ecc_enabled: Whether ECC was used
+                - redundancy: Repetition factor used
 
         Raises:
             FileNotFoundError: If input file doesn't exist
             ValueError: If message is empty or too long for audio duration
-
-        Example:
-            >>> metadata = encoder.encode("voice.wav", "watermarked.wav", "DEV")
-            >>> print(f"Encoded {metadata['duration']:.2f}s audio")
         """
         input_path = Path(input_audio_path)
         output_path = Path(output_audio_path)
@@ -226,10 +231,36 @@ class AudioGuardEncoder:
         duration = len(audio) / sample_rate
         print(f"[AudioGuardEncoder] Audio: {duration:.2f}s @ {sample_rate}Hz")
 
-        # Convert message to binary
-        bit_sequence = text_to_binary(message)
+        # Pre-process message with ECC if enabled
+        if use_ecc:
+            try:
+                from .ecc import MessageECC
+                ecc = MessageECC(nsym=16)
+                message_bytes = ecc.encode(message)
+                print(f"[AudioGuardEncoder] Applied Reed-Solomon ECC ({len(message_bytes)} bytes)")
+            except ImportError:
+                print(f"[AudioGuardEncoder] Warning: ECC not available, using plain message")
+                from .utils import text_to_binary
+                message_bytes = text_to_binary(message)
+                use_ecc = False
+        else:
+            from .utils import text_to_binary
+            message_bytes = text_to_binary(message)
+
+        # Convert to binary with redundancy
+        if isinstance(message_bytes, bytes):
+            bit_sequence = ''.join(format(b, '08b') for b in message_bytes)
+        else:
+            bit_sequence = message_bytes
+
+        # Add redundancy: repeat message N times
+        if redundancy > 1:
+            original_bits = bit_sequence
+            bit_sequence = original_bits * redundancy
+            print(f"[AudioGuardEncoder] Added {redundancy}x redundancy ({len(bit_sequence)} total bits)")
+
         n_bits = len(bit_sequence)
-        print(f"[AudioGuardEncoder] Embedding message: '{message}' ({n_bits} bits)")
+        print(f"[AudioGuardEncoder] Embedding message: '{message}' (ECC={use_ecc}, redundancy={redundancy})")
 
         # STFT decomposition
         print(f"[AudioGuardEncoder] Computing STFT (frame_size={self.frame_size})...")
@@ -278,11 +309,13 @@ class AudioGuardEncoder:
         result_metadata = {
             "sample_rate": int(sample_rate),
             "duration": float(duration),
-            "bit_sequence": bit_sequence,
             "message": message,
+            "bit_sequence": bit_sequence,
             "frame_count": magnitude.shape[0],
             "spread_info": spread_info,
             "amplitude_factor": self.amplitude_factor,
+            "ecc_enabled": use_ecc,
+            "redundancy": redundancy,
         }
 
         print(f"[AudioGuardEncoder] ✓ Watermarking complete!")

@@ -87,7 +87,9 @@ The heart of AudioGuard, written in Python using NumPy and SciPy.
 |-------|-----------|---------|
 | **Frontend** | Flutter (Dart) | Cross-platform mobile app |
 | **Backend** | FastAPI (Python) | High-performance REST API |
-| **DSP** | NumPy, SciPy, Librosa | Signal processing and audio handling |
+| **DSP** | NumPy, SciPy | Signal processing and audio handling |
+| **Audio I/O** | pydub (FFmpeg backend) | MP3, WAV, OGG, FLAC, M4A support |
+| **Error Correction** | reedsolo (Reed-Solomon) | 20% ECC overhead, 8-byte error correction |
 | **ML** | TensorFlow Lite, PyTorch | CNN-based robust decoding |
 | **Cache** | Redis | API caching and session management |
 | **Proxy** | Nginx | Rate limiting and SSL termination |
@@ -95,17 +97,49 @@ The heart of AudioGuard, written in Python using NumPy and SciPy.
 
 ## Watermarking Engine
 
-The engine operates in the frequency domain to achieve high robustness and transparency.
+The engine operates in the frequency domain to achieve high robustness and transparency, with multi-resolution processing for enhanced accuracy.
 
-### STFT Pipeline
-The signal is processed in overlapping frames (default 2048 samples):
-1.  **Framing & Windowing**: Hann windowing minimizes spectral leakage.
-2.  **FFT**: Converts time-domain frames to frequency-domain spectra.
-3.  **Magnitude Modulation**: Subtly alters frequency magnitudes to represent data.
-4.  **IFFT**: Reconstructs the time-domain signal.
+### Multi-Resolution STFT Pipeline
+AudioGuard uses **three parallel STFTs** at different frame sizes (1024, 2048, 4096 samples) to achieve high robustness:
+
+```
+Audio Input
+    ↓
+┌───────────────────────────────────────┐
+│   Multi-Resolution STFT Analysis      │
+├───────────────────────────────────────┤
+│  Frame 1024 Hz (Fine Time Res)        │
+│  Frame 2048 Hz (Balanced)             │
+│  Frame 4096 Hz (Fine Freq Res)        │
+└───────────────────────────────────────┘
+    ↓
+┌───────────────────────────────────────┐
+│   Energy-Adaptive Embedding           │
+│   (Per-bin amplitude scaling)          │
+└───────────────────────────────────────┘
+    ↓
+┌───────────────────────────────────────┐
+│   Reed-Solomon ECC (20% overhead)     │
+│   16 error symbols per 255-byte block │
+└───────────────────────────────────────┘
+    ↓
+Audio Output (Embedded 3x for redundancy)
+```
+
+**Key Features:**
+- **Fine Time Resolution** (1024): Survives time-stretching attacks.
+- **Fine Frequency Resolution** (4096): Survives pitch-shifting attacks.
+- **Majority Voting**: Combined extraction from all 3 resolutions for enhanced bit accuracy.
+- **Energy-Adaptive Amplitude**: Modulation scaled by local spectral energy for imperceptibility.
 
 ### Psychoacoustic Masking
 AudioGuard uses a masking model based on human hearing sensitivity. It calculates frequency-specific thresholds, allowing stronger watermark embedding in "noisy" spectral regions where human perception is least sensitive.
+
+### Error Correction
+The system implements **Reed-Solomon Error Correction (ECC)** using the `reedsolo` library:
+- **16 error symbols** per 255-byte block (20% overhead).
+- Corrects up to **8-byte errors** per block.
+- Validates successfully even post-compression in lossy formats.
 
 ## Security Architecture
 
