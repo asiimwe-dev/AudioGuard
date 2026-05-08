@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import '../utils/logger.dart';
 
 /// Handles app permissions for audio/file operations
@@ -11,7 +11,7 @@ class PermissionsManager {
     }
 
     try {
-      final status = await Permission.microphone.request();
+      final status = await ph.Permission.microphone.request();
       AppLogger.info('Microphone permission: ${status.name}');
       return status.isGranted;
     } catch (e) {
@@ -27,7 +27,7 @@ class PermissionsManager {
     }
 
     try {
-      final status = await Permission.storage.request();
+      final status = await ph.Permission.storage.request();
       AppLogger.info('Storage permission: ${status.name}');
       return status.isGranted;
     } catch (e) {
@@ -43,7 +43,7 @@ class PermissionsManager {
     }
 
     try {
-      final status = await Permission.mediaLibrary.request();
+      final status = await ph.Permission.mediaLibrary.request();
       AppLogger.info('Media library permission: ${status.name}');
       return status.isGranted;
     } catch (e) {
@@ -84,7 +84,7 @@ class PermissionsManager {
     }
 
     try {
-      final status = await Permission.microphone.status;
+      final status = await ph.Permission.microphone.status;
       return status.isGranted;
     } catch (e) {
       AppLogger.warning('Failed to check microphone permission', e);
@@ -99,7 +99,7 @@ class PermissionsManager {
     }
 
     try {
-      final status = await Permission.storage.status;
+      final status = await ph.Permission.storage.status;
       return status.isGranted;
     } catch (e) {
       AppLogger.warning('Failed to check storage permission', e);
@@ -110,7 +110,7 @@ class PermissionsManager {
   /// Open app settings to enable permissions
   static Future<void> openAppSettings() async {
     try {
-      await openAppSettings();
+      await ph.openAppSettings();
       AppLogger.info('Opened app settings');
     } catch (e) {
       AppLogger.warning('Failed to open app settings', e);

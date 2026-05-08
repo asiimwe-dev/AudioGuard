@@ -23,8 +23,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-import time
+import shutil
 import tempfile
+import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -131,7 +132,8 @@ def _register_routes(app: FastAPI) -> None:
     async def encode(
         request: Request,
         background_tasks: BackgroundTasks,
-        file: UploadFile = File(..., description="Audio file (wav/mp3/flac/ogg/m4a)"),
+        file: UploadFile | None = File(None, description="Audio file (wav/mp3/flac/ogg/m4a)"),
+        audio_file: UploadFile | None = File(None, description="Legacy alias for audio file"),
         message: str = Form(..., min_length=1, max_length=255),
         amplitude_factor: float = Form(default=0.08, ge=0.01, le=1.0),
         seed: int = Form(default=42),
@@ -139,8 +141,9 @@ def _register_routes(app: FastAPI) -> None:
         watermarker=Depends(get_watermarker),
         storage=Depends(get_storage),
     ):
-        file_size = await _check_file_size(file)
-        tmp_in, tmp_out = await _save_upload(file)
+        upload = _resolve_upload(file, audio_file)
+        file_size = _check_file_size(upload)
+        tmp_in, tmp_out = await _save_upload(upload)
 
         try:
             await validate_audio_file(tmp_in, MAX_DURATION_SECONDS)
@@ -162,7 +165,7 @@ def _register_routes(app: FastAPI) -> None:
             result = wm.encode(tmp_in, tmp_out, message)
 
             if not result.success:
-                raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, result.error)
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, result.error)
 
             file_id = storage.save_file(tmp_out, {"message": message, "amplitude_factor": amplitude_factor})
 
@@ -174,6 +177,7 @@ def _register_routes(app: FastAPI) -> None:
                 sample_rate=result.sample_rate,
                 bits_embedded=result.bits_embedded,
                 snr_db=result.snr_db,
+                embedding_strength=max(0.0, min(1.0, result.snr_db / 20.0)),
                 processing_time_ms=result.processing_time_ms,
             )
         finally:
@@ -188,12 +192,15 @@ def _register_routes(app: FastAPI) -> None:
     )
     async def decode(
         request: Request,
-        file: UploadFile = File(...),
+        file: UploadFile | None = File(None),
+        audio_file: UploadFile | None = File(None),
+        file_id: str | None = Form(default=None),
         seed: int = Form(default=42),
         _rl: None = Depends(rate_limit),
         watermarker=Depends(get_watermarker),
+        storage=Depends(get_storage),
     ):
-        tmp_in, _ = await _save_upload(file)
+        tmp_in, should_cleanup = await _resolve_input_path(file, audio_file, file_id, storage)
         try:
             await validate_audio_file(tmp_in, MAX_DURATION_SECONDS)
 
@@ -214,7 +221,8 @@ def _register_routes(app: FastAPI) -> None:
                 error=result.error,
             )
         finally:
-            _cleanup(tmp_in)
+            if should_cleanup:
+                _cleanup(tmp_in)
 
     # ------------------------------------------------------------------
     @app.post(
@@ -225,12 +233,15 @@ def _register_routes(app: FastAPI) -> None:
     )
     async def verify(
         request: Request,
-        file: UploadFile = File(...),
+        file: UploadFile | None = File(None),
+        audio_file: UploadFile | None = File(None),
+        file_id: str | None = Form(default=None),
         confidence_threshold: float = Form(default=0.60, ge=0.0, le=1.0),
         _rl: None = Depends(rate_limit),
         watermarker=Depends(get_watermarker),
+        storage=Depends(get_storage),
     ):
-        tmp_in, _ = await _save_upload(file)
+        tmp_in, should_cleanup = await _resolve_input_path(file, audio_file, file_id, storage)
         try:
             from core.watermarker import WatermarkConfig
             wm = watermarker(WatermarkConfig())
@@ -249,7 +260,8 @@ def _register_routes(app: FastAPI) -> None:
                 processing_time_ms=result.processing_time_ms,
             )
         finally:
-            _cleanup(tmp_in)
+            if should_cleanup:
+                _cleanup(tmp_in)
 
     # ------------------------------------------------------------------
     @app.post(
@@ -260,11 +272,14 @@ def _register_routes(app: FastAPI) -> None:
     )
     async def analyse(
         request: Request,
-        file: UploadFile = File(...),
+        file: UploadFile | None = File(None),
+        audio_file: UploadFile | None = File(None),
+        file_id: str | None = Form(default=None),
         _rl: None = Depends(rate_limit),
         watermarker=Depends(get_watermarker),
+        storage=Depends(get_storage),
     ):
-        tmp_in, _ = await _save_upload(file)
+        tmp_in, should_cleanup = await _resolve_input_path(file, audio_file, file_id, storage)
         try:
             import numpy as np
             audio, sr = sf.read(tmp_in, dtype="float32")
@@ -291,8 +306,38 @@ def _register_routes(app: FastAPI) -> None:
                 watermark_message=decode_result.message if decode_result.success else None,
                 watermark_confidence=decode_result.confidence,
                 snr_db=decode_result.snr_db,
+                signal_strength=decode_result.confidence,
+                watermark_present=decode_result.sync_found,
+                spectral_info={
+                    "duration_s": duration,
+                    "sample_rate": sr,
+                    "rms": rms,
+                    "peak": peak,
+                    "dynamic_range_db": snr_proxy,
+                },
                 processing_time_ms=decode_result.processing_time_ms,
             )
+        finally:
+            if should_cleanup:
+                _cleanup(tmp_in)
+
+    # ------------------------------------------------------------------
+    @app.post(
+        "/api/v1/upload",
+        tags=["files"],
+        summary="Upload an audio file and create a file id",
+    )
+    async def upload_audio(
+        file: UploadFile | None = File(None),
+        audio_file: UploadFile | None = File(None),
+        storage=Depends(get_storage),
+    ):
+        upload = _resolve_upload(file, audio_file)
+        tmp_in, _ = await _save_upload(upload)
+        try:
+            await validate_audio_file(tmp_in, MAX_DURATION_SECONDS)
+            file_id = storage.save_file(tmp_in, {"original_name": upload.filename})
+            return {"file_id": file_id}
         finally:
             _cleanup(tmp_in)
 
@@ -325,6 +370,14 @@ def _register_routes(app: FastAPI) -> None:
             filename=f"watermarked_{file_id[:8]}.wav",
         )
 
+    @app.get(
+        "/api/v1/download/{file_id}",
+        tags=["files"],
+        summary="Download a watermarked file",
+    )
+    async def download_file_legacy(file_id: str, storage=Depends(get_storage)):
+        return await download_file(file_id, storage)
+
 
 # ---------------------------------------------------------------------------
 # Exception handlers
@@ -336,7 +389,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         logger.exception("Unhandled exception: %s", exc)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Internal server error", "details": str(exc)},
+            content={"error": "Internal server error"},
         )
 
     @app.exception_handler(HTTPException)
@@ -354,23 +407,28 @@ def _register_exception_handlers(app: FastAPI) -> None:
 _START_TIME = time.time()
 
 
-async def _check_file_size(file: UploadFile) -> int:
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE_BYTES:
+def _check_file_size(file: UploadFile) -> int:
+    current = file.file.tell()
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(current)
+    if size > MAX_FILE_SIZE_BYTES:
         raise HTTPException(
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             f"File too large (max {MAX_FILE_SIZE_BYTES // 1024 // 1024} MB)",
         )
-    await file.seek(0)
-    return len(content)
+    return size
 
 
 async def _save_upload(file: UploadFile) -> tuple[str, str]:
     suffix = Path(file.filename or "audio.wav").suffix or ".wav"
-    tmp_in = tempfile.mktemp(suffix=suffix)
-    tmp_out = tempfile.mktemp(suffix=".wav")
-    content = await file.read()
-    Path(tmp_in).write_bytes(content)
+    tmp_in_fd, tmp_in = tempfile.mkstemp(suffix=suffix)
+    os.close(tmp_in_fd)
+    tmp_out_fd, tmp_out = tempfile.mkstemp(suffix=".wav")
+    os.close(tmp_out_fd)
+    await file.seek(0)
+    with open(tmp_in, "wb") as dst:
+        shutil.copyfileobj(file.file, dst)
     return tmp_in, tmp_out
 
 
@@ -393,6 +451,33 @@ def _create_job(operation: str) -> str:
         "error": None,
     }
     return job_id
+
+
+def _resolve_upload(
+    file: UploadFile | None,
+    audio_file: UploadFile | None,
+) -> UploadFile:
+    upload = file or audio_file
+    if upload is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Audio file is required")
+    return upload
+
+
+async def _resolve_input_path(
+    file: UploadFile | None,
+    audio_file: UploadFile | None,
+    file_id: str | None,
+    storage,
+) -> tuple[str, bool]:
+    if file_id:
+        path = storage.get_file(file_id)
+        if not path:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found or expired")
+        return path, False
+
+    upload = _resolve_upload(file, audio_file)
+    tmp_in, _ = await _save_upload(upload)
+    return tmp_in, True
 
 
 async def _bg_encode(

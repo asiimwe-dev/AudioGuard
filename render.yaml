@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: audioguard-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon
+    plan: standard
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetMemoryUtilizationPercentage: 70
+      targetCPUUtilizationPercentage: 70
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+      - key: AUDIOGUARD_STORAGE_DIR
+        value: /tmp/audioguard_storage
+      - key: PORT
+        value: "8000"
+    healthCheckPath: /health
+    autoDeploy: true
+
+envVarGroups:
+  - name: production
+    envVars:
+      - key: LOG_LEVEL
+        value: info
+      - key: API_TIMEOUT
+        value: "300"
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "100"
+      - key: MAX_AUDIO_DURATION_MINUTES
+        value: "60"
+      - key: FILE_TTL_HOURS
+        value: "24"

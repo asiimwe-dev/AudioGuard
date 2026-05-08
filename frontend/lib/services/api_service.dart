@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/watermark_model.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
@@ -32,7 +34,11 @@ class EncodeResponse {
   factory EncodeResponse.fromJson(Map<String, dynamic> json) => EncodeResponse(
         success: json['success'] as bool,
         fileId: json['file_id'] as String,
-        embeddingStrength: (json['embedding_strength'] as num).toDouble(),
+        embeddingStrength: (json['embedding_strength'] ??
+                (json['snr_db'] != null
+                    ? ((json['snr_db'] as num).toDouble() / 20.0)
+                    : 0.0))
+            .toDouble(),
         processingTimeMs: (json['processing_time_ms'] as num).toInt(),
         message: json['message'] as String?,
         originalDuration: json['original_duration'] != null 
@@ -112,9 +118,21 @@ class AnalyzeResponse {
   factory AnalyzeResponse.fromJson(Map<String, dynamic> json) =>
       AnalyzeResponse(
         success: json['success'] as bool,
-        watermarkPresent: json['watermark_present'] as bool,
-        signalStrength: (json['signal_strength'] as num).toDouble(),
-        spectralInfo: json['spectral_info'] as Map<String, dynamic>? ?? {},
+        watermarkPresent: (json['watermark_present'] ??
+                json['watermark_detected'] ??
+                false) as bool,
+        signalStrength: ((json['signal_strength'] ??
+                    json['watermark_confidence'] ??
+                    0.0) as num)
+                .toDouble(),
+        spectralInfo: json['spectral_info'] as Map<String, dynamic>? ??
+            <String, dynamic>{
+              'duration_s': json['duration_s'],
+              'sample_rate': json['sample_rate'],
+              'rms': json['rms'],
+              'peak': json['peak'],
+              'dynamic_range_db': json['dynamic_range_db'],
+            },
         processingTimeMs: (json['processing_time_ms'] as num).toInt(),
       );
 }
@@ -231,7 +249,10 @@ class AudioGuardApiClient {
       }
 
       final formData = FormData.fromMap({
-        'audio_file': await MultipartFile.fromFile(audioFilePath),
+        'file': await MultipartFile.fromFile(
+          audioFilePath,
+          filename: file.path.split('/').last,
+        ),
         'message': message,
         if (messageLength != null) 'message_length': messageLength,
       });
@@ -408,7 +429,7 @@ class AudioGuardApiClient {
   }) async {
     try {
       final response = await dio.get(
-        '/api/v1/download/$fileId',
+        '${AppConstants.downloadEndpoint}/$fileId',
         options: Options(
           responseType: ResponseType.bytes,
         ),
@@ -461,8 +482,16 @@ class ApiService {
     // Configure SSL/TLS for HTTPS connections (fixes Android 12 cert issues)
     (_dio.httpClientAdapter as dynamic).onHttpClientCreate = (HttpClient httpClient) {
       httpClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
-        // Accept certificates from onrender.com and subdomains
-        return host.contains('onrender.com') || host.contains('audioguard');
+        // For audioguard-api.onrender.com, always accept the certificate
+        // Android 12+ has stricter certificate validation
+        final shouldAccept = host == 'localhost' ||
+            host == '127.0.0.1' ||
+            host == '10.0.2.2' ||
+            host.endsWith('.local');
+        if (shouldAccept) {
+          AppLogger.info('Certificate check for $host:$port - accepting local dev cert');
+        }
+        return shouldAccept;
       };
       return httpClient;
     };
@@ -516,13 +545,19 @@ class ApiService {
   Future<bool> checkHealth() async {
     try {
       AppLogger.info('Testing connection to: $_baseUrl/health');
-      await _client.getHealth().timeout(
+      final response = await _client.getHealth().timeout(
             const Duration(seconds: 10),
           );
-      AppLogger.info('Health check successful');
+      AppLogger.info('Health check successful: ${response.status}');
       return true;
+    } on TimeoutException catch (e) {
+      AppLogger.error('Health check timeout after 10 seconds', e);
+      return false;
     } catch (e) {
-      AppLogger.error('Health check failed', e);
+      AppLogger.error('Health check failed: ${e.runtimeType} - $e', e);
+      if (e is ProcessingError) {
+        AppLogger.error('Processing error code: ${e.code}, details: ${e.details}', null);
+      }
       return false;
     }
   }
@@ -543,9 +578,12 @@ class ApiService {
       ).timeout(Duration(seconds: ConfigService().getFileUploadTimeout()));
 
       final duration = DateTime.now().difference(startTime);
+      final tempDir = await getTemporaryDirectory();
+      final localPath = '${tempDir.path}/watermarked_${response.fileId}.wav';
+      await downloadFile(fileId: response.fileId, savePath: localPath);
 
       return EncodingResult(
-        encodedFilePath: audioFilePath,
+        encodedFilePath: localPath,
         fileId: response.fileId,
         processingTime: duration,
         mode: 'cloud',
@@ -575,7 +613,7 @@ class ApiService {
       }
 
       final formData = FormData.fromMap({
-        'audio_file': await MultipartFile.fromFile(
+        'file': await MultipartFile.fromFile(
           audioFilePath,
           filename: file.path.split('/').last,
         ),

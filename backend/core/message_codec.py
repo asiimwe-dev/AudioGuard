@@ -69,17 +69,14 @@ class MessageCodec:
         msg_bytes = message.encode("utf-8")
         if len(msg_bytes) > self.max_msg_bytes:
             raise ValueError(f"Message too long: {len(msg_bytes)} > {self.max_msg_bytes}")
-        
-        # Pad message to max length so ECC output is always same size
-        msg_bytes_padded = msg_bytes + b'\x00' * (self.max_msg_bytes - len(msg_bytes))
-        ecc_bytes = self._ecc_encode(msg_bytes_padded)
+
+        ecc_bytes = self._ecc_encode(msg_bytes)
         
         msg_bits = np.unpackbits(np.frombuffer(ecc_bytes, dtype=np.uint8)).astype(np.int8)
         frame = self._build_header(len(msg_bytes))  # Store original length, not padded
         packet = np.concatenate([frame, msg_bits])
         tiled = np.tile(packet, self.redundancy)
-        # Pad / crop to exactly expected_bits
-        return self._pad_or_crop(tiled, self.expected_bits)
+        return tiled.astype(np.int8)
 
     def decode(
         self,
@@ -91,36 +88,13 @@ class MessageCodec:
         Tries each redundant copy; returns the first successful decode.
         Falls back to majority-voted combined copy.
         """
-        packet_len = HEADER_BITS + self._ecc_block_size * 8
-        copies = []
-        for i in range(self.redundancy):
-            start = i * packet_len
-            end = start + packet_len
-            if end <= len(bits):
-                copies.append(bits[start:end])
-
-        for copy in copies:
-            result = self._try_decode_copy(copy)
+        for sync_pos in (0, self._find_sync(bits)):
+            if sync_pos < 0 or sync_pos >= len(bits):
+                continue
+            result = self._try_decode_copy(bits[sync_pos:])
             if result is not None:
-                msg, sync_pos, ecc_err = result
-                return msg, sync_pos, ecc_err, True
-
-        # Last resort: majority vote across copies then decode
-        if len(copies) > 1:
-            voted = (np.stack(copies).sum(axis=0) >= len(copies) / 2).astype(np.int8)
-            result = self._try_decode_copy(voted)
-            if result is not None:
-                msg, sync_pos, ecc_err = result
-                return msg, sync_pos, ecc_err, True
-
-        # Search for sync anywhere in stream (handles time-shifted extraction)
-        sync_pos = self._find_sync(bits)
-        if sync_pos >= 0:
-            copy = bits[sync_pos: sync_pos + packet_len]
-            result = self._try_decode_copy(copy, already_aligned=True)
-            if result is not None:
-                msg, _, ecc_err = result
-                return msg, sync_pos, ecc_err, True
+                msg, aligned_pos, ecc_err = result
+                return msg, sync_pos + aligned_pos, ecc_err, True
 
         return "", 0, 0, False
 
@@ -168,19 +142,15 @@ class MessageCodec:
         Attempt to decode a single packet copy.
         Returns (message, sync_pos, ecc_errors) or None.
         """
-        if already_aligned:
-            header = copy[:HEADER_BITS]
-            payload = copy[HEADER_BITS:]
-            sync_pos = 0
-        else:
-            # Check that Barker code matches
-            barker_cand = copy[:13].astype(float)
-            corr = np.dot(barker_cand * 2 - 1, BARKER_13 * 2 - 1) / 13.0
-            if corr < 0.7:
-                return None
-            header = copy[:HEADER_BITS]
-            payload = copy[HEADER_BITS:]
-            sync_pos = 0
+        if len(copy) < HEADER_BITS:
+            return None
+
+        header = copy[:HEADER_BITS]
+        payload = copy[HEADER_BITS:]
+        barker_cand = header[:13].astype(float)
+        corr = np.dot(barker_cand * 2 - 1, BARKER_13 * 2 - 1) / 13.0
+        if corr < 0.6 and not already_aligned:
+            return None
 
         # Extract message length from header
         length_bits = header[15:23]
@@ -189,7 +159,7 @@ class MessageCodec:
             return None
 
         # Convert payload bits → bytes
-        n_ecc_bytes = self._ecc_block_size
+        n_ecc_bytes = msg_len + self.nsym
         payload_bits = payload[:n_ecc_bytes * 8]
         if len(payload_bits) < n_ecc_bytes * 8:
             payload_bits = np.pad(payload_bits, (0, n_ecc_bytes * 8 - len(payload_bits)))
@@ -199,7 +169,7 @@ class MessageCodec:
         try:
             decoded_bytes, ecc_errors = self._ecc_decode(payload_bytes)
             message = decoded_bytes[:msg_len].decode("utf-8", errors="replace")
-            return message, sync_pos, ecc_errors
+            return message, 0, ecc_errors
         except Exception:
             return None
 
@@ -207,8 +177,8 @@ class MessageCodec:
         """Sliding-window search for Barker-13 pattern. Returns position or -1."""
         barker_bipolar = (BARKER_13 * 2 - 1).astype(float)
         window = 13
-        best_pos, best_corr = -1, 0.7  # minimum threshold
-        for i in range(min(len(bits) - window, 4096)):
+        best_pos, best_corr = -1, 0.6  # minimum threshold
+        for i in range(min(len(bits) - window, 8192)):
             cand = bits[i:i + window].astype(float) * 2 - 1
             corr = float(np.dot(cand, barker_bipolar) / window)
             if corr > best_corr:

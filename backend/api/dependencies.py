@@ -104,18 +104,18 @@ def _sync_validate(path: str, max_duration_s: float) -> None:
         info = sf.info(path)
     except Exception as exc:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             f"Cannot read audio file: {exc}",
         )
 
     duration = info.frames / info.samplerate
     if duration > max_duration_s:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             f"Audio duration {duration:.0f}s exceeds maximum {max_duration_s:.0f}s",
         )
     if duration < 0.5:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Audio file too short (minimum 0.5 seconds)",
         )

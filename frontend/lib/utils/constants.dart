@@ -20,8 +20,9 @@ class AppConstants {
   static const String encodeEndpoint = '/api/v1/encode';
   static const String decodeEndpoint = '/api/v1/decode';
   static const String verifyEndpoint = '/api/v1/verify';
-  static const String analyzeEndpoint = '/api/v1/analyze';
+  static const String analyzeEndpoint = '/api/v1/analyse';
   static const String uploadEndpoint = '/api/v1/upload';
+  static const String downloadEndpoint = '/api/v1/download';
 
   // Audio Configuration
   static const List<String> supportedAudioFormats = [

@@ -41,6 +41,7 @@ class EncodeResponse(BaseResponse):
     sample_rate: int
     bits_embedded: int
     snr_db: float = Field(..., description="Signal-to-noise ratio of watermark embedding")
+    embedding_strength: float = Field(..., ge=0.0, le=1.0)
     error: Optional[str] = None
 
 
@@ -86,6 +87,9 @@ class AnalyseResponse(BaseResponse):
     watermark_message: Optional[str] = None
     watermark_confidence: float = Field(..., ge=0.0, le=1.0)
     snr_db: float
+    watermark_present: bool = False
+    signal_strength: float = Field(default=0.0, ge=0.0, le=1.0)
+    spectral_info: dict = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------

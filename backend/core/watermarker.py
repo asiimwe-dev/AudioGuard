@@ -24,7 +24,7 @@ import soundfile as sf
 from scipy.signal import resample_poly
 from math import gcd
 
-from .message_codec import MessageCodec
+from .message_codec import MessageCodec, HEADER_BITS
 from .stft_utils import MultiResSTFT, RESOLUTIONS
 from .psychoacoustic import AdaptiveMasking
 
@@ -44,6 +44,7 @@ class WatermarkConfig:
     use_ecc: bool = True
     ecc_nsym: int = 16
     use_psychoacoustic: bool = True
+    header_boost: float = 1.8
 
 
 @dataclass
@@ -289,7 +290,9 @@ class Watermarker:
         mod = mag.copy()
         for bit_idx, bit_val in enumerate(bits):
             bins = self._freq_bins_for_bit(bit_idx, freqs, frame_size, sr)
-            factor = (1.0 + amp[bins]) if bit_val else (1.0 - amp[bins])
+            boost = self.cfg.header_boost if bit_idx < HEADER_BITS else 1.0
+            delta = amp[bins] * boost
+            factor = (1.0 + delta) if bit_val else (1.0 - delta)
             mod[:, bins] *= factor[np.newaxis, :]
         return mod
 
