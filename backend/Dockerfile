@@ -1,66 +1,63 @@
-# AudioGuard Multi-Stage Docker Build
-# Optimized for Render Free Tier with a focus on minimal image size and efficient caching.
+# ─── AudioGuard Production Dockerfile ───────────────────────────────────────
+# Multi-stage build: builder installs deps, runtime is lean.
+# Includes FFmpeg for pydub/librosa format support.
 
-# --- Stage 1: Builder ---
-FROM python:3.11-slim as builder
-
-# Set environment variables to ensure pip doesn't cache and venv is clean
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+# ── Stage 1: builder ─────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Install build dependencies for SFFT engine
+# System deps for audio processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libsndfile1-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a virtual environment in /opt/venv
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Install Python dependencies into the venv
-COPY requirements.txt requirements-api.txt* ./
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    if [ -f requirements-api.txt ]; then pip install --no-cache-dir -r requirements-api.txt; fi
 
-# --- Stage 2: Runtime ---
-FROM python:3.11-slim
+# ── Stage 2: runtime ─────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+LABEL maintainer="AudioGuard <hi@audioguard.io>"
+LABEL description="AudioGuard audio watermarking API"
+LABEL version="2.0.0"
+
+# Runtime system deps (FFmpeg + libsndfile)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r audioguard \
+    && useradd -r -g audioguard -s /bin/false audioguard
+
+COPY --from=builder /install /usr/local
 
 WORKDIR /app
+COPY . .
 
-# Install runtime-only audio libraries
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsndfile1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Non-root user for security
+RUN chown -R audioguard:audioguard /app
+USER audioguard
 
-# Copy the entire virtual environment from the builder
-COPY --from=builder /opt/venv /opt/venv
+# Storage + temp directories
+RUN mkdir -p /tmp/audioguard_storage
 
-# Set PATH to use the virtual environment
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1 \
-    PORT=10000
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    AUDIOGUARD_STORAGE_DIR=/tmp/audioguard_storage \
+    PORT=8000
 
-# Copy application code
-COPY engine/ ./engine/
-COPY api/ ./api/
-COPY main.py app.py ./
+EXPOSE 8000
 
-# Create appuser and give them ownership of the app directory
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
-USER appuser
-
-# Health check (Render uses port 10000 by default for some free instances)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
-
-EXPOSE ${PORT}
-
-# Run API server - Using 1 worker for the Free Tier to save RAM
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "10000", "--workers", "1"]
+CMD ["uvicorn", "app:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "2", \
+     "--log-level", "info", \
+     "--access-log"]

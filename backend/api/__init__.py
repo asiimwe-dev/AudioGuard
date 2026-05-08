@@ -1,18 +1,5 @@
-"""
-AudioGuard REST API Module
+"""AudioGuard API module."""
 
-Provides FastAPI-based REST endpoints for watermarking and verification.
-"""
+from .main import create_app
 
-from .server import app, create_app
-from .models import EncodeRequest, DecodeRequest, VerifyRequest, EncodeResponse, DecodeResponse
-
-__all__ = [
-    "app",
-    "create_app",
-    "EncodeRequest",
-    "DecodeRequest",
-    "VerifyRequest",
-    "EncodeResponse",
-    "DecodeResponse",
-]
+__all__ = ["create_app"]
