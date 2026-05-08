@@ -1,6 +1,4 @@
 # ─── AudioGuard Production Dockerfile ───────────────────────────────────────
-# Multi-stage build: builder installs deps, runtime is lean.
-# Includes FFmpeg for pydub/librosa format support.
 
 # ── Stage 1: builder ─────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
@@ -22,10 +20,9 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 FROM python:3.11-slim AS runtime
 
 LABEL maintainer="AudioGuard <hi@audioguard.io>"
-LABEL description="AudioGuard audio watermarking API"
 LABEL version="2.0.0"
 
-# Runtime system deps (FFmpeg + libsndfile)
+# Runtime system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
@@ -38,26 +35,29 @@ COPY --from=builder /install /usr/local
 WORKDIR /app
 COPY . .
 
-# Non-root user for security
-RUN chown -R audioguard:audioguard /app
+# ── CRITICAL FIX: Permissions ──
+# We create the directory and set permissions while we are still ROOT.
+RUN mkdir -p /tmp/audioguard_storage && \
+    chown -R audioguard:audioguard /app /tmp/audioguard_storage
+
+# Now safe to switch to non-root user
 USER audioguard
 
-# Storage + temp directories
-RUN mkdir -p /tmp/audioguard_storage
-
+# ── Environment Configuration ──
+# Render defaults to 10000, but this setup adapts to whatever the host provides.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     AUDIOGUARD_STORAGE_DIR=/tmp/audioguard_storage \
-    PORT=8000
+    PORT=10000
 
-EXPOSE 8000
+# EXPOSE is primarily for documentation
+EXPOSE 10000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+# ── Healthcheck ──
+# Uses the dynamic port variable to check if the app is responding
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; import os; port = os.getenv('PORT', '10000'); urllib.request.urlopen(f'http://localhost:{port}/health')"
 
-CMD ["uvicorn", "app:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "2", \
-     "--log-level", "info", \
-     "--access-log"]
+# ── Execution ──
+# We use 'sh -c' so that the $PORT variable is correctly expanded by the shell.
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT} --workers 2 --log-level info --access-log"]
