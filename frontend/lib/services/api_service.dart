@@ -254,6 +254,7 @@ class AudioGuardApiClient {
           filename: file.path.split('/').last,
         ),
         'message': message,
+        // ignore: use_null_aware_elements
         if (messageLength != null) 'message_length': messageLength,
       });
 

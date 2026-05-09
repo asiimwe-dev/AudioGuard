@@ -1,7 +1,7 @@
-/// Circuit Breaker Pattern Implementation
-/// 
-/// Prevents request storms by tracking failures and temporarily stopping requests
-/// to allow backend recovery time.
+// Circuit Breaker Pattern Implementation
+// 
+// Prevents request storms by tracking failures and temporarily stopping requests
+// to allow backend recovery time.
 
 import 'package:flutter/foundation.dart';
 

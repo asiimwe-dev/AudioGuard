@@ -65,8 +65,14 @@ from .dependencies import (
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# In-process job store (replace with Redis for multi-worker deployments)
+# In-process job store (SINGLE-WORKER ONLY)
 # ---------------------------------------------------------------------------
+# ⚠️ WARNING: _JOBS is not thread-safe or distributed-safe. For production
+# multi-worker deployments (e.g., Gunicorn with multiple workers), migrate to:
+#   - Redis (recommended): Distributed, durable, supports async polling
+#   - Database (alternative): PostgreSQL JSONB or equivalent
+# Each worker process has its own _JOBS dict; cross-worker queries will fail.
+# For now, file IDs and job IDs are single-process local keys only.
 _JOBS: dict[str, dict] = {}
 
 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024   # 100 MB

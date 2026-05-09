@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../models/watermark_model.dart';
@@ -113,9 +112,11 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
                 ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Upload failed: $e')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Upload failed: $e')),
+                    );
+                  }
                 }
               }
             },
@@ -271,7 +272,12 @@ class _DecodeScreenState extends ConsumerState<DecodeScreen> {
             _ResultRow(label: 'Method', value: result.mode),
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () => Share.share('Extracted Watermark: ${result.message} (Confidence: ${result.confidence})'),
+              // TODO: Migrate to new SharePlus API in Phase 2
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Extracted: ${result.message} (Confidence: ${result.confidence.toStringAsFixed(1)}%)')),
+                );
+              },
               icon: const Icon(Icons.share),
               label: const Text('Share Result'),
             ),

@@ -18,18 +18,21 @@ class AppearanceSettingsScreen extends ConsumerWidget {
         children: [
           // Theme Mode Section
           _SectionHeader(title: 'Theme'),
+          // ignore: deprecated_member_use
           RadioListTile<AppThemeMode>(
             title: const Text('System Default'),
             value: AppThemeMode.system,
             groupValue: appearance.themeMode,
             onChanged: (value) => ref.read(appearanceProvider.notifier).setThemeMode(value!),
           ),
+          // ignore: deprecated_member_use
           RadioListTile<AppThemeMode>(
             title: const Text('Light Mode'),
             value: AppThemeMode.light,
             groupValue: appearance.themeMode,
             onChanged: (value) => ref.read(appearanceProvider.notifier).setThemeMode(value!),
           ),
+          // ignore: deprecated_member_use
           RadioListTile<AppThemeMode>(
             title: const Text('Dark Mode'),
             value: AppThemeMode.dark,

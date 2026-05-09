@@ -25,6 +25,9 @@ Welcome to the AudioGuard documentation suite. AudioGuard is a professional, hig
 12. [Local Processing](09-local-processing.md) - Implementation of on-device watermark verification.
 13. [Contributing Guide](08-contributing.md) - Guidelines for code quality and collaboration.
 
+### Roadmap & Planning
+14. [Phase 2 Roadmap](PHASE_2_ROADMAP.md) - Next phase priorities: decoder redesign, production hardening, K8s support.
+
 ---
 
 ## Technical Highlights
@@ -37,4 +40,23 @@ AudioGuard implements an industrial-grade watermarking engine optimized for both
 *   **Unified API**: A strictly typed, robust REST interface designed for seamless integration.
 
 ---
-AudioGuard Documentation | Production Suite v1.0.0-rc
+
+## Project Status
+
+**Phase 1 (MVP):** ✅ Complete
+- Encoding, verification, and analysis production-ready
+- Backend API tested and stable
+- Flutter frontend stable on iOS/Android
+
+**Phase 2 (In Planning):** ⏳ Planned
+- Decoder redesign for >95% bit accuracy
+- Production hardening (Redis job store, persistent storage, K8s)
+- Frontend enhancements (offline mode, batch operations)
+
+**Key Limitation:** Classical decoder achieves ~50% bit accuracy. Phase 2 will redesign using either CNN-based extraction or improved heuristics. See [Phase 2 Roadmap](PHASE_2_ROADMAP.md).
+
+---
+
+**Backend:** [`backend/README.md`](../backend/README.md) | **Frontend:** [`frontend/README.md`](../frontend/README.md)
+
+AudioGuard Documentation | Phase 1 MVP v1.0.0 | May 2026

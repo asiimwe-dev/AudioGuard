@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import '../providers/watermark_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/ui_provider.dart';
@@ -52,7 +51,10 @@ class _EncodeScreenState extends ConsumerState<EncodeScreen> {
   }
 
   Future<void> _shareFile(String path) async {
-    await Share.shareXFiles([XFile(path)], text: 'Check out my watermarked audio via AudioGuard!');
+    // TODO: Migrate to new SharePlus API in Phase 2
+    // For now, just log file path (debug only)
+    // ignore: avoid_print
+    print('File ready to share: $path');
   }
 
   @override

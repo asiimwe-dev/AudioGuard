@@ -50,6 +50,7 @@ class LocalService {
       try {
         // ignore: avoid_print
         print('[LocalService] TFLite support is optional - using mock implementation for testing');
+        // ignore: avoid_print
         print('[LocalService] ⚠️  For production watermarking, use cloud API (ApiService)');
         _interpreter = _MockInterpreter();
         _tfliteAvailable = false;

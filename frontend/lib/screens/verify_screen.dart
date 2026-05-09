@@ -106,9 +106,11 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                 ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Upload failed: $e')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Upload failed: $e')),
+                    );
+                  }
                 }
               }
             },
