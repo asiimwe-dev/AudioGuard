@@ -119,6 +119,15 @@ def _register_routes(app: FastAPI) -> None:
     rate_limit = RateLimiter(requests=100, window_seconds=60)
 
     # ------------------------------------------------------------------
+    @app.get("/", include_in_schema=False)
+    async def root():
+        return {
+            "status": "ok",
+            "message": "AudioGuard API. See /docs for API documentation.",
+            "version": "2.0.0",
+        }
+
+    # ------------------------------------------------------------------
     @app.get("/health", response_model=HealthResponse, tags=["meta"])
     async def health():
         return HealthResponse(
