@@ -156,6 +156,7 @@ class VerifyResult {
   final String id;
   final bool isValid;
   final double confidence;
+  final String verdict; // watermarked | not_watermarked | possibly_tampered | unknown
   final WatermarkMessage? detectedMessage;
   final String mode; // 'local', 'cloud', 'hybrid'
   final Duration processingTime;
@@ -165,6 +166,7 @@ class VerifyResult {
     String? id,
     required this.isValid,
     required this.confidence,
+    this.verdict = 'unknown',
     this.detectedMessage,
     required this.mode,
     required this.processingTime,
@@ -174,7 +176,7 @@ class VerifyResult {
 
   @override
   String toString() =>
-      'VerifyResult(${isValid ? 'VALID' : 'INVALID'}, ${(confidence * 100).toStringAsFixed(1)}%)';
+      'VerifyResult($verdict, ${(confidence * 100).toStringAsFixed(1)}%)';
 }
 
 /// Result of audio analysis operation

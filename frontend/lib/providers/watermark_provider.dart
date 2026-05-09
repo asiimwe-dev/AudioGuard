@@ -420,8 +420,25 @@ class VerificationNotifier extends StateNotifier<VerificationState> {
     final audioPath = _ref.read(selectedAudioFileProvider);
 
     try {
-      final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
+      String? id = fileId;
       if (id == null || id.isEmpty) {
+        id = _ref.read(selectedEncodedFileIdProvider);
+      }
+      if (id == null || id.isEmpty) {
+        if (audioPath == null || audioPath.isEmpty) {
+          throw ProcessingError(
+            message: 'No file to verify',
+            code: 'NO_FILE_PROVIDED',
+            details: 'Please select an audio file first',
+          );
+        }
+        // Always upload the currently selected file for verification to avoid
+        // stale file_id reuse from previous operations.
+        id = await _apiService.uploadAudioFile(audioFilePath: audioPath);
+        _ref.read(selectedEncodedFileIdProvider.notifier).state = id;
+      }
+
+      if (id.isEmpty) {
         throw ProcessingError(
           message: 'No file to verify',
           code: 'NO_FILE_PROVIDED',

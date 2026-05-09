@@ -65,6 +65,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     final file = await audioService.pickAudioFile();
     if (file != null) {
       ref.read(selectedAudioFileProvider.notifier).state = file.path;
+      ref.read(selectedEncodedFileIdProvider.notifier).state = null;
     }
   }
 
@@ -216,27 +217,44 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
 
   Widget _buildCertificate(VerifyResult result, String author) {
     final theme = Theme.of(context);
-    final isValid = result.isValid;
+    final verdict = result.verdict;
+    final isWatermarked = verdict == 'watermarked';
+    final isTampered = verdict == 'possibly_tampered';
+    final title = isWatermarked
+        ? 'AUTHENTIC'
+        : isTampered
+            ? 'TAMPERED'
+            : 'NO WATERMARK DETECTED';
+    final statusColor = isWatermarked
+        ? theme.colorScheme.tertiary
+        : isTampered
+            ? theme.colorScheme.error
+            : theme.colorScheme.outline;
+    final statusIcon = isWatermarked
+        ? Icons.verified_rounded
+        : isTampered
+            ? Icons.warning_amber_rounded
+            : Icons.info_outline_rounded;
     final now = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
     
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isValid ? theme.colorScheme.tertiary : theme.colorScheme.error, width: 2),
+        border: Border.all(color: statusColor, width: 2),
         boxShadow: [
           BoxShadow(
-            color: isValid ? theme.colorScheme.tertiary.withValues(alpha: 0.2) : theme.colorScheme.error.withValues(alpha: 0.2),
+            color: statusColor.withValues(alpha: 0.2),
             blurRadius: 20,
             spreadRadius: 5,
           )
         ],
       ),
       padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Icon(isValid ? Icons.verified_rounded : Icons.warning_amber_rounded, size: 64, color: isValid ? theme.colorScheme.tertiary : theme.colorScheme.error),
-          Text(isValid ? 'AUTHENTIC' : 'TAMPERED', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+        child: Column(
+          children: [
+          Icon(statusIcon, size: 64, color: statusColor),
+          Text(title, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           const Divider(),
           _CertificateField('Confidence Score', '${(result.confidence * 100).toStringAsFixed(1)}%'),

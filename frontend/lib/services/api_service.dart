@@ -82,12 +82,14 @@ class DecodeResponse {
 class VerifyResponse {
   final bool success;
   final bool watermarkDetected;
+  final String verdict;
   final double confidence;
   final int processingTimeMs;
 
   VerifyResponse({
     required this.success,
     required this.watermarkDetected,
+    required this.verdict,
     required this.confidence,
     required this.processingTimeMs,
   });
@@ -95,6 +97,10 @@ class VerifyResponse {
   factory VerifyResponse.fromJson(Map<String, dynamic> json) => VerifyResponse(
         success: json['success'] as bool,
         watermarkDetected: json['watermark_detected'] as bool,
+        verdict: (json['verdict'] as String?) ??
+            ((json['watermark_detected'] as bool? ?? false)
+                ? 'watermarked'
+                : 'not_watermarked'),
         confidence: (json['confidence'] as num).toDouble(),
         processingTimeMs: (json['processing_time_ms'] as num).toInt(),
       );
@@ -688,6 +694,7 @@ class ApiService {
 
       return VerifyResult(
         isValid: response.watermarkDetected,
+        verdict: response.verdict,
         confidence: response.confidence,
         mode: 'cloud',
         processingTime: duration,
