@@ -554,8 +554,24 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
     final audioPath = _ref.read(selectedAudioFileProvider);
 
     try {
-      final id = fileId ?? _ref.read(selectedEncodedFileIdProvider);
+      String? id = fileId;
       if (id == null || id.isEmpty) {
+        id = _ref.read(selectedEncodedFileIdProvider);
+      }
+      if (id == null || id.isEmpty) {
+        if (audioPath == null || audioPath.isEmpty) {
+          throw ProcessingError(
+            message: 'No file to analyze',
+            code: 'NO_FILE_PROVIDED',
+            details: 'Please select an audio file first',
+          );
+        }
+        // Upload currently selected file if no server file_id is available.
+        id = await _apiService.uploadAudioFile(audioFilePath: audioPath);
+        _ref.read(selectedEncodedFileIdProvider.notifier).state = id;
+      }
+
+      if (id.isEmpty) {
         throw ProcessingError(
           message: 'No file to analyze',
           code: 'NO_FILE_PROVIDED',

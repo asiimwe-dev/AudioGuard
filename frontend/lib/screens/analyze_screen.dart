@@ -33,6 +33,7 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
     final file = await audioService.pickAudioFile();
     if (file != null) {
       ref.read(selectedAudioFileProvider.notifier).state = file.path;
+      ref.read(selectedEncodedFileIdProvider.notifier).state = null;
     }
   }
 
@@ -63,12 +64,25 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
             ),
             onTap: () async {
               Navigator.pop(context);
-              // Upload file to get fileId
-              final apiService = ref.read(apiServiceProvider);
               try {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Uploading file...')),
-                );
+                if (file.serverFileId != null && file.serverFileId!.isNotEmpty) {
+                  ref.read(selectedEncodedFileIdProvider.notifier).state = file.serverFileId;
+                  ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
+                  if (mounted && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Using saved encoded file reference')),
+                    );
+                  }
+                  return;
+                }
+
+                // Legacy library entry (without server file ID): upload as fallback.
+                final apiService = ref.read(apiServiceProvider);
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Uploading file...')),
+                  );
+                }
                 final fileId = await apiService.uploadAudioFile(audioFilePath: file.filePath);
                 ref.read(selectedEncodedFileIdProvider.notifier).state = fileId;
                 ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
