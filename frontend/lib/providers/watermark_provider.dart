@@ -206,6 +206,7 @@ class EncodingNotifier extends StateNotifier<EncodingState> {
           message: message,
           amplitudeFactor: 0.05, // Default amplitude
           originalFilename: audioFilePath.split('/').last,
+          serverFileId: result.fileId,
         );
         
         // Update library

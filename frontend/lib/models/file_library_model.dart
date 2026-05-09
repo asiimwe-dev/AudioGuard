@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 /// Represents an encoded audio file in the library
 class EncodedAudioFile {
   final String id;
+  final String? serverFileId;
   final String filename;
   final String filePath;
   final String message;
@@ -14,6 +15,7 @@ class EncodedAudioFile {
 
   EncodedAudioFile({
     String? id,
+    this.serverFileId,
     required this.filename,
     required this.filePath,
     required this.message,
@@ -52,6 +54,7 @@ class EncodedAudioFile {
   /// Convert to JSON for storage
   Map<String, dynamic> toJson() => {
         'id': id,
+        'serverFileId': serverFileId,
         'filename': filename,
         'filePath': filePath,
         'message': message,
@@ -66,6 +69,7 @@ class EncodedAudioFile {
   factory EncodedAudioFile.fromJson(Map<String, dynamic> json) {
     return EncodedAudioFile(
       id: json['id'] as String?,
+      serverFileId: json['serverFileId'] as String?,
       filename: json['filename'] as String,
       filePath: json['filePath'] as String,
       message: json['message'] as String,
@@ -80,6 +84,7 @@ class EncodedAudioFile {
   /// Create a copy with modified fields
   EncodedAudioFile copyWith({
     String? id,
+    String? serverFileId,
     String? filename,
     String? filePath,
     String? message,
@@ -91,6 +96,7 @@ class EncodedAudioFile {
   }) {
     return EncodedAudioFile(
       id: id ?? this.id,
+      serverFileId: serverFileId ?? this.serverFileId,
       filename: filename ?? this.filename,
       filePath: filePath ?? this.filePath,
       message: message ?? this.message,

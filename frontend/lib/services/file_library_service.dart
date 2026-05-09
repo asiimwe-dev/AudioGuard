@@ -70,6 +70,7 @@ class FileLibraryService {
     required String message,
     required double amplitudeFactor,
     required String originalFilename,
+    String? serverFileId,
   }) async {
     try {
       final libDir = await _getLibraryDirectory();
@@ -87,6 +88,7 @@ class FileLibraryService {
       
       // Create metadata
       final encodedFile = EncodedAudioFile(
+        serverFileId: serverFileId,
         filename: safeFilename,
         filePath: destPath,
         message: message,

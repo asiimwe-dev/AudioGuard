@@ -251,7 +251,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
   void _onVerify(dynamic file) {
     // Set the selected file and navigate to verify
     ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
-    ref.read(selectedEncodedFileIdProvider.notifier).state = null;
+    ref.read(selectedEncodedFileIdProvider.notifier).state = file.serverFileId;
     ref.read(currentHomeScreenProvider.notifier).state = HomeSubScreen.verify;
   }
 
