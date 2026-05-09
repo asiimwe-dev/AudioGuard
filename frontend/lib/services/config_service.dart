@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/constants.dart';
 
 /// Runtime configuration service for API URLs and timeouts
 class ConfigService {
@@ -21,62 +22,97 @@ class ConfigService {
 
   /// Get API base URL (reads from preferences, falls back to default)
   String getApiBaseUrl() {
-    return _prefs.getString('api_base_url') ?? 
-           'https://audioguard-api.onrender.com';
+    if (!_initialized) return AppConstants.defaultApiBaseUrl;
+    try {
+      return _prefs.getString('api_base_url') ?? AppConstants.defaultApiBaseUrl;
+    } catch (_) {
+      return AppConstants.defaultApiBaseUrl;
+    }
   }
 
   /// Set API base URL
   Future<void> setApiBaseUrl(String url) async {
+    if (!_initialized) await init();
     await _prefs.setString('api_base_url', url);
   }
 
   /// Get API timeout in seconds
   int getApiTimeout() {
-    return _prefs.getInt('api_timeout') ?? 30;
+    if (!_initialized) return 30;
+    try {
+      return _prefs.getInt('api_timeout') ?? 30;
+    } catch (_) {
+      return 30;
+    }
   }
 
   /// Set API timeout in seconds
   Future<void> setApiTimeout(int seconds) async {
+    if (!_initialized) await init();
     await _prefs.setInt('api_timeout', seconds);
   }
 
   /// Get file upload timeout in seconds
   int getFileUploadTimeout() {
-    return _prefs.getInt('file_upload_timeout') ?? 300;
+    if (!_initialized) return 300;
+    try {
+      return _prefs.getInt('file_upload_timeout') ?? 300;
+    } catch (_) {
+      return 300;
+    }
   }
 
   /// Set file upload timeout in seconds
   Future<void> setFileUploadTimeout(int seconds) async {
+    if (!_initialized) await init();
     await _prefs.setInt('file_upload_timeout', seconds);
   }
 
   /// Get verify confidence threshold
   double getVerifyConfidenceThreshold() {
-    return _prefs.getDouble('verify_confidence_threshold') ?? 0.7;
+    if (!_initialized) return 0.7;
+    try {
+      return _prefs.getDouble('verify_confidence_threshold') ?? 0.7;
+    } catch (_) {
+      return 0.7;
+    }
   }
 
   /// Set verify confidence threshold
   Future<void> setVerifyConfidenceThreshold(double threshold) async {
+    if (!_initialized) await init();
     await _prefs.setDouble('verify_confidence_threshold', threshold);
   }
 
   /// Get analyze confidence threshold
   double getAnalyzeConfidenceThreshold() {
-    return _prefs.getDouble('analyze_confidence_threshold') ?? 0.5;
+    if (!_initialized) return 0.5;
+    try {
+      return _prefs.getDouble('analyze_confidence_threshold') ?? 0.5;
+    } catch (_) {
+      return 0.5;
+    }
   }
 
   /// Set analyze confidence threshold
   Future<void> setAnalyzeConfidenceThreshold(double threshold) async {
+    if (!_initialized) await init();
     await _prefs.setDouble('analyze_confidence_threshold', threshold);
   }
 
   /// Get decode confidence threshold
   double getDecodeConfidenceThreshold() {
-    return _prefs.getDouble('decode_confidence_threshold') ?? 0.8;
+    if (!_initialized) return 0.8;
+    try {
+      return _prefs.getDouble('decode_confidence_threshold') ?? 0.8;
+    } catch (_) {
+      return 0.8;
+    }
   }
 
   /// Set decode confidence threshold
   Future<void> setDecodeConfidenceThreshold(double threshold) async {
+    if (!_initialized) await init();
     await _prefs.setDouble('decode_confidence_threshold', threshold);
   }
 }
