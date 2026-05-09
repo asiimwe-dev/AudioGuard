@@ -313,12 +313,10 @@ class AudioGuardApiClient {
     }
     
     try {
-      final requestBody = {
+      final requestBody = FormData.fromMap({
         'file_id': fileId,
-        'use_cnn': false,
-        'confidence_threshold': ConfigService().getDecodeConfidenceThreshold(),
-        'max_message_length': messageLength ?? AppConstants.maxMessageLength,
-      };
+        'seed': 42,
+      });
 
       final response = await dio.post(
         AppConstants.decodeEndpoint,
@@ -355,12 +353,10 @@ class AudioGuardApiClient {
     }
     
     try {
-      final requestBody = {
+      final requestBody = FormData.fromMap({
         'file_id': fileId,
-        'expected_message': message,
         'confidence_threshold': ConfigService().getVerifyConfidenceThreshold(),
-        'max_message_length': AppConstants.maxMessageLength,
-      };
+      });
 
       final response = await dio.post(
         AppConstants.verifyEndpoint,
@@ -396,11 +392,9 @@ class AudioGuardApiClient {
     }
     
     try {
-      final requestBody = {
+      final requestBody = FormData.fromMap({
         'file_id': fileId,
-        'confidence_threshold': ConfigService().getAnalyzeConfidenceThreshold(),
-        'max_message_length': AppConstants.maxMessageLength,
-      };
+      });
 
       final response = await dio.post(
         AppConstants.analyzeEndpoint,
