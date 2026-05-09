@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/watermark_provider.dart';
@@ -115,7 +117,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: Column(
               children: WatermarkMode.values.map((mode) {
-                // ignore: deprecated_member_use
                 return RadioListTile<WatermarkMode>(
                   title: Text(mode.label),
                   subtitle: Text(_getModeDescription(mode)),
