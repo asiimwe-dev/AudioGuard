@@ -602,6 +602,7 @@ class ApiService {
   /// Used for files from library that need fileId for verification/analysis/decode
   Future<String> uploadAudioFile({
     required String audioFilePath,
+    String? message,
   }) async {
     try {
       final file = File(audioFilePath);
@@ -618,6 +619,7 @@ class ApiService {
           audioFilePath,
           filename: file.path.split('/').last,
         ),
+        if (message != null && message.isNotEmpty) 'message': message,
       });
 
       final response = await _dio.post(

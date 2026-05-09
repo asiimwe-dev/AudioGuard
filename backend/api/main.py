@@ -359,13 +359,17 @@ def _register_routes(app: FastAPI) -> None:
     async def upload_audio(
         file: UploadFile | None = File(None),
         audio_file: UploadFile | None = File(None),
+        message: str | None = Form(default=None, min_length=1, max_length=255),
         storage=Depends(get_storage),
     ):
         upload = _resolve_upload(file, audio_file)
         tmp_in, _ = await _save_upload(upload)
         try:
             await validate_audio_file(tmp_in, MAX_DURATION_SECONDS)
-            file_id = storage.save_file(tmp_in, {"original_name": upload.filename})
+            metadata = {"original_name": upload.filename}
+            if message:
+                metadata["message"] = message
+            file_id = storage.save_file(tmp_in, metadata)
             return {"file_id": file_id}
         finally:
             _cleanup(tmp_in)

@@ -182,6 +182,23 @@ class FileLibraryService {
     }
   }
 
+  /// Persist server file id for an existing library entry
+  Future<void> updateServerFileId({
+    required String libraryFileId,
+    required String serverFileId,
+  }) async {
+    try {
+      final files = await _loadLibraryIndex();
+      final index = files.indexWhere((f) => f.id == libraryFileId);
+      if (index < 0) return;
+      files[index] = files[index].copyWith(serverFileId: serverFileId);
+      await _saveLibraryIndex(files);
+      AppLogger.info('Updated server file id for library file: $libraryFileId');
+    } catch (e) {
+      AppLogger.error('Failed to update server file id for library file', e);
+    }
+  }
+
   /// Delete all encoded files from library
   Future<void> clearLibrary() async {
     try {

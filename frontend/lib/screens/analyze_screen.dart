@@ -78,12 +78,20 @@ class _AnalyzeScreenState extends ConsumerState<AnalyzeScreen> {
 
                 // Legacy library entry (without server file ID): upload as fallback.
                 final apiService = ref.read(apiServiceProvider);
+                final fileLibraryService = ref.read(fileLibraryServiceProvider);
                 if (mounted && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Uploading file...')),
+                    const SnackBar(content: Text('Registering legacy library file...')),
                   );
                 }
-                final fileId = await apiService.uploadAudioFile(audioFilePath: file.filePath);
+                final fileId = await apiService.uploadAudioFile(
+                  audioFilePath: file.filePath,
+                  message: file.message,
+                );
+                await fileLibraryService.updateServerFileId(
+                  libraryFileId: file.id,
+                  serverFileId: fileId,
+                );
                 ref.read(selectedEncodedFileIdProvider.notifier).state = fileId;
                 ref.read(selectedAudioFileProvider.notifier).state = file.filePath;
               } catch (e) {
