@@ -152,9 +152,9 @@ class HealthResponse {
 
   factory HealthResponse.fromJson(Map<String, dynamic> json) =>
       HealthResponse(
-        status: json['status'] as String,
-        version: json['version'] as String,
-        modelsAvailable: json['models_available'] as List<dynamic>,
+        status: (json['status'] as String?) ?? 'healthy',
+        version: (json['version'] as String?) ?? 'unknown',
+        modelsAvailable: (json['models_available'] as List<dynamic>?) ?? const [],
         uptimeSeconds: (json['uptime_seconds'] as num).toDouble(),
       );
 }
