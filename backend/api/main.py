@@ -223,6 +223,35 @@ def _register_routes(app: FastAPI) -> None:
             wm = watermarker(WatermarkConfig(seed=seed))
             result = wm.decode(tmp_in)
 
+            # Automatic CNN fallback: if classical decoding failed or confidence is low,
+            # attempt server-side CNN decoder if available. Thresholds are conservative
+            # to avoid false positives; tune via dataset if needed.
+            try:
+                from core.cnn_decoder import CNNDecoder
+                cnn = CNNDecoder()
+            except Exception:
+                cnn = None
+
+            if (not result.success or result.confidence < 0.90) and cnn is not None and getattr(cnn, 'available', False):
+                try:
+                    cnn_msg, cnn_conf = cnn.decode(tmp_in)
+                    if cnn_msg and cnn_conf > max(0.0, result.confidence):
+                        # Return CNN result when it improves confidence
+                        return DecodeResponse(
+                            success=True,
+                            message=cnn_msg,
+                            confidence=cnn_conf,
+                            snr_db=result.snr_db,
+                            ber_estimate=result.ber_estimate,
+                            sync_found=result.sync_found,
+                            ecc_errors=result.ecc_errors,
+                            method="cnn",
+                            processing_time_ms=result.processing_time_ms,
+                            error=None,
+                        )
+                except Exception:
+                    logger.exception("CNN fallback failed")
+
             return DecodeResponse(
                 success=result.success,
                 message=result.message if result.success else None,
