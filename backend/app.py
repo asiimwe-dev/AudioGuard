@@ -13,8 +13,9 @@ from api import create_app
 app = create_app(debug=False)
 
 if __name__ == "__main__":
-    import uvicorn
     import os
+
+    import uvicorn
 
     # Look for the PORT environment variable, default to 8000 for local dev
     port = int(os.environ.get("PORT", 8000))
