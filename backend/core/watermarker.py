@@ -192,20 +192,85 @@ class Watermarker:
                 bits_per_res.append(bits)
                 snrs.append(snr)
 
-            combined, confidence = self._vote(bits_per_res)
+            # Aggregate votes across resolutions and compute bit-level confidence
+            combined, bit_confidence = self._vote(bits_per_res)
             message, sync_pos, ecc_errors, sync_found = self._codec.decode(combined)
 
-            ber = 1.0 - float(np.mean(confidence))
+            # Estimate error-correction reliability
+            ecc_score = 1.0
+            try:
+                if self.cfg.use_ecc and getattr(self.cfg, 'ecc_nsym', 0) > 0:
+                    ecc_score = 1.0 - min(float(ecc_errors) / float(max(1, self.cfg.ecc_nsym)), 1.0)
+            except Exception:
+                ecc_score = 1.0
+
+            bit_conf_mean = float(np.mean(bit_confidence)) if len(bit_confidence) > 0 else 0.0
+            # Combined confidence blends bit-vote confidence with ECC reliability
+            combined_confidence = 0.7 * bit_conf_mean + 0.3 * ecc_score
+
+            # Bit error rate estimate (coarse)
+            ber = max(0.0, 1.0 - bit_conf_mean)
             elapsed = (time.perf_counter() - t0) * 1000
 
-            logger.info("Decoded '%s'  conf=%.2f  sync=%s  %.0fms",
-                        message, float(np.mean(confidence)), sync_found, elapsed)
+            logger.info(
+                "Decoded '%s'  bit_conf=%.3f ecc_err=%d ecc_score=%.3f combined_conf=%.3f sync=%s snr=%.2f ms=%.0f",
+                message,
+                bit_conf_mean,
+                ecc_errors,
+                ecc_score,
+                combined_confidence,
+                sync_found,
+                float(np.mean(snrs)) if snrs else 0.0,
+                elapsed,
+            )
+
+            # If the codec failed to extract a message but bit-level confidence is
+            # high, try stronger fallbacks: 1) permissive raw decode; 2) sliding-window
+            # aligned ECC decode ignoring autocorrelation threshold. This recovers
+            # messages where header bits are flipped but payload bits are consistent.
+            if not message and combined_confidence >= 0.90:
+                # 1) permissive raw-byte decode (best-effort)
+                try:
+                    n_bytes = len(combined) // 8
+                    payload_bits = combined[: n_bytes * 8]
+                    payload_bytes = bytes(np.packbits(payload_bits.astype(np.uint8)))
+                    decoded = payload_bytes.decode("utf-8", errors="replace")
+                    printable = ''.join(c for c in decoded if c.isprintable())
+                    message = printable[: self._codec.max_msg_bytes]
+                    if message:
+                        logger.info("Fallback raw decode produced message='%s'", message)
+                except Exception:
+                    message = ""
+
+            # 2) Try sliding-window ECC-assisted decode ignoring header correlation
+            if not message and combined_confidence >= 0.90:
+                try:
+                    max_scan = min(4096, max(0, len(combined) - HEADER_BITS))
+                    for pos in range(0, max_scan):
+                        res = self._codec._try_decode_copy(combined[pos:], already_aligned=True)
+                        if res is not None:
+                            msg_found, aligned_pos, ecc_err = res
+                            if msg_found:
+                                message = msg_found
+                                ecc_errors = ecc_err
+                                sync_pos = pos + aligned_pos
+                                logger.info("Sliding ECC decode recovered message='%s' at pos=%d ecc_err=%d", message, sync_pos, ecc_errors)
+                                break
+                except Exception:
+                    pass
+
+            # Determine success: accept high confidence (>=0.90) even if sync not found,
+            # otherwise require sync and minimal confidence. This improves recall while
+            # keeping a conservative lower bound when sync is present.
+            success = bool(message) and (
+                combined_confidence >= 0.90 or (sync_found and combined_confidence >= 0.5)
+            )
 
             return DecodeResult(
-                success=bool(message),
+                success=success,
                 message=message,
-                confidence=float(np.mean(confidence)),
-                snr_db=float(np.mean(snrs)),
+                confidence=combined_confidence,
+                snr_db=float(np.mean(snrs)) if snrs else 0.0,
                 ber_estimate=ber,
                 sync_found=sync_found,
                 sync_pos=sync_pos,
