@@ -16,17 +16,17 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from math import gcd
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import soundfile as sf
 from scipy.signal import resample_poly
-from math import gcd
 
-from .message_codec import MessageCodec, HEADER_BITS
-from .stft_utils import MultiResSTFT, RESOLUTIONS
+from .message_codec import HEADER_BITS, MessageCodec
 from .psychoacoustic import AdaptiveMasking
+from .stft_utils import RESOLUTIONS, MultiResSTFT
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WatermarkConfig:
     """All tunable parameters in one place — passed to both encode and decode."""
+
     amplitude_factor: float = 0.12
     seed: int = 42
     start_freq_hz: float = 500.0
@@ -116,17 +117,38 @@ class Watermarker:
         message: str,
     ) -> EncodeResult:
         import time
+
         t0 = time.perf_counter()
 
         input_path = Path(input_path)
         output_path = Path(output_path)
 
         if not input_path.exists():
-            return EncodeResult(False, str(output_path), message, 0, 0, 0, 0, 0, 0,
-                                error=f"File not found: {input_path}")
+            return EncodeResult(
+                False,
+                str(output_path),
+                message,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                error=f"File not found: {input_path}",
+            )
         if not message.strip():
-            return EncodeResult(False, str(output_path), message, 0, 0, 0, 0, 0, 0,
-                                error="Message cannot be empty")
+            return EncodeResult(
+                False,
+                str(output_path),
+                message,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                error="Message cannot be empty",
+            )
 
         try:
             audio, sr = self._load_audio(input_path)
@@ -138,14 +160,17 @@ class Watermarker:
             for res, (mag, phase, freqs) in stfts_orig.items():
                 frame_size = RESOLUTIONS[res]
                 amp = self._get_amplitude_array(mag, freqs, frame_size, sr)
-                stfts_mod[res] = (self._embed(mag, bits, freqs, frame_size, sr, amp), phase)
+                stfts_mod[res] = (
+                    self._embed(mag, bits, freqs, frame_size, sr, amp),
+                    phase,
+                )
 
             watermarked = self._stft.inverse(stfts_mod)
-            watermarked = watermarked[:len(audio)]
-            
+            watermarked = watermarked[: len(audio)]
+
             # Calculate SNR BEFORE normalization
             snr = self._snr_db(audio, watermarked)
-            
+
             # Then normalize for output
             peak = np.max(np.abs(watermarked))
             if peak > 1.0:
@@ -155,7 +180,13 @@ class Watermarker:
             sf.write(str(output_path), watermarked, sr, subtype="PCM_16")
 
             elapsed = (time.perf_counter() - t0) * 1000
-            logger.info("Encoded '%s' → %s  SNR=%.1fdB  %.0fms", message, output_path, snr, elapsed)
+            logger.info(
+                "Encoded '%s' → %s  SNR=%.1fdB  %.0fms",
+                message,
+                output_path,
+                snr,
+                elapsed,
+            )
 
             return EncodeResult(
                 success=True,
@@ -170,16 +201,30 @@ class Watermarker:
             )
         except Exception as exc:
             logger.exception("Encode failed")
-            return EncodeResult(False, str(output_path), message, 0, 0, 0, 0, 0, 0, error=str(exc))
+            return EncodeResult(
+                False, str(output_path), message, 0, 0, 0, 0, 0, 0, error=str(exc)
+            )
 
     def decode(self, input_path: str | Path) -> DecodeResult:
         import time
+
         t0 = time.perf_counter()
         input_path = Path(input_path)
 
         if not input_path.exists():
-            return DecodeResult(False, "", 0, 0, 1.0, False, 0, 0, "none", 0,
-                                error=f"File not found: {input_path}")
+            return DecodeResult(
+                False,
+                "",
+                0,
+                0,
+                1.0,
+                False,
+                0,
+                0,
+                "none",
+                0,
+                error=f"File not found: {input_path}",
+            )
         try:
             audio, sr = self._load_audio(input_path)
             stfts = self._stft.forward(audio)
@@ -199,12 +244,16 @@ class Watermarker:
             # Estimate error-correction reliability
             ecc_score = 1.0
             try:
-                if self.cfg.use_ecc and getattr(self.cfg, 'ecc_nsym', 0) > 0:
-                    ecc_score = 1.0 - min(float(ecc_errors) / float(max(1, self.cfg.ecc_nsym)), 1.0)
+                if self.cfg.use_ecc and getattr(self.cfg, "ecc_nsym", 0) > 0:
+                    ecc_score = 1.0 - min(
+                        float(ecc_errors) / float(max(1, self.cfg.ecc_nsym)), 1.0
+                    )
             except Exception:
                 ecc_score = 1.0
 
-            bit_conf_mean = float(np.mean(bit_confidence)) if len(bit_confidence) > 0 else 0.0
+            bit_conf_mean = (
+                float(np.mean(bit_confidence)) if len(bit_confidence) > 0 else 0.0
+            )
             # Combined confidence blends bit-vote confidence with ECC reliability
             combined_confidence = 0.7 * bit_conf_mean + 0.3 * ecc_score
 
@@ -235,10 +284,12 @@ class Watermarker:
                     payload_bits = combined[: n_bytes * 8]
                     payload_bytes = bytes(np.packbits(payload_bits.astype(np.uint8)))
                     decoded = payload_bytes.decode("utf-8", errors="replace")
-                    printable = ''.join(c for c in decoded if c.isprintable())
+                    printable = "".join(c for c in decoded if c.isprintable())
                     message = printable[: self._codec.max_msg_bytes]
                     if message:
-                        logger.info("Fallback raw decode produced message='%s'", message)
+                        logger.info(
+                            "Fallback raw decode produced message='%s'", message
+                        )
                 except Exception:
                     message = ""
 
@@ -247,14 +298,21 @@ class Watermarker:
                 try:
                     max_scan = min(4096, max(0, len(combined) - HEADER_BITS))
                     for pos in range(0, max_scan):
-                        res = self._codec._try_decode_copy(combined[pos:], already_aligned=True)
+                        res = self._codec._try_decode_copy(
+                            combined[pos:], already_aligned=True
+                        )
                         if res is not None:
                             msg_found, aligned_pos, ecc_err = res
                             if msg_found:
                                 message = msg_found
                                 ecc_errors = ecc_err
                                 sync_pos = pos + aligned_pos
-                                logger.info("Sliding ECC decode recovered message='%s' at pos=%d ecc_err=%d", message, sync_pos, ecc_errors)
+                                logger.info(
+                                    "Sliding ECC decode recovered message='%s' at pos=%d ecc_err=%d",
+                                    message,
+                                    sync_pos,
+                                    ecc_errors,
+                                )
                                 break
                 except Exception:
                     pass
@@ -263,7 +321,8 @@ class Watermarker:
             # otherwise require sync and minimal confidence. This improves recall while
             # keeping a conservative lower bound when sync is present.
             success = bool(message) and (
-                combined_confidence >= 0.90 or (sync_found and combined_confidence >= 0.5)
+                combined_confidence >= 0.90
+                or (sync_found and combined_confidence >= 0.5)
             )
 
             return DecodeResult(
@@ -280,8 +339,19 @@ class Watermarker:
             )
         except Exception as exc:
             logger.exception("Decode failed")
-            return DecodeResult(False, "", 0, 0, 1.0, False, 0, 0, "error",
-                                (time.perf_counter() - t0) * 1000, error=str(exc))
+            return DecodeResult(
+                False,
+                "",
+                0,
+                0,
+                1.0,
+                False,
+                0,
+                0,
+                "error",
+                (time.perf_counter() - t0) * 1000,
+                error=str(exc),
+            )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -384,7 +454,7 @@ class Watermarker:
             dev = norm[:, bins].mean()
             bits[bit_idx] = 1 if dev > 0 else 0
 
-        snr = 10.0 * np.log10(np.mean(mag ** 2) / (np.std(mag) ** 2 + 1e-10))
+        snr = 10.0 * np.log10(np.mean(mag**2) / (np.std(mag) ** 2 + 1e-10))
         return bits, snr
 
     @staticmethod
@@ -392,10 +462,12 @@ class Watermarker:
         bits_per_res: list[np.ndarray],
     ) -> tuple[np.ndarray, np.ndarray]:
         max_len = max(len(b) for b in bits_per_res)
-        stacked = np.array([
-            np.pad(b[:max_len].astype(float), (0, max_len - len(b[:max_len])))
-            for b in bits_per_res
-        ])  # (n_res, n_bits)
+        stacked = np.array(
+            [
+                np.pad(b[:max_len].astype(float), (0, max_len - len(b[:max_len])))
+                for b in bits_per_res
+            ]
+        )  # (n_res, n_bits)
         votes = stacked.sum(axis=0)
         combined = (votes >= len(bits_per_res) / 2.0).astype(np.int8)
         confidence = np.abs(votes - len(bits_per_res) / 2.0) / (len(bits_per_res) / 2.0)
@@ -403,9 +475,9 @@ class Watermarker:
 
     @staticmethod
     def _snr_db(original: np.ndarray, watermarked: np.ndarray) -> float:
-        diff = watermarked[:len(original)] - original[:len(watermarked)]
-        sig_power = np.mean(original ** 2)
-        noise_power = np.mean(diff ** 2)
+        diff = watermarked[: len(original)] - original[: len(watermarked)]
+        sig_power = np.mean(original**2)
+        noise_power = np.mean(diff**2)
         if noise_power < 1e-12:
             return 60.0
         return float(10.0 * np.log10(sig_power / noise_power))
